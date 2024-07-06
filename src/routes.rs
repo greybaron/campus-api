@@ -1,0 +1,30 @@
+use axum::{
+    middleware,
+    routing::{get, post},
+    Router,
+};
+use http::{header::CONTENT_TYPE, Method};
+use tower_http::cors::{Any, CorsLayer};
+
+use crate::{auth, services};
+
+pub async fn app() -> Router {
+    let cors = CorsLayer::new()
+        // allow `GET` and `POST` when accessing the resource
+        .allow_methods([Method::GET, Method::POST])
+        // allow requests from any origin
+        .allow_origin(Any)
+        .allow_headers([CONTENT_TYPE]);
+
+    Router::new()
+        .route("/signin", post(auth::sign_in))
+        .route(
+            "/get_grades",
+            get(services::get_grades).layer(middleware::from_fn(auth::authorize)),
+        )
+        .route(
+            "/get_signup",
+            get(services::get_signup_options).layer(middleware::from_fn(auth::authorize)),
+        )
+        .layer(cors)
+}
