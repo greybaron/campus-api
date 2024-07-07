@@ -1,13 +1,17 @@
 use anyhow::{Context, Result};
+use regex::Regex;
 use std::sync::Arc;
 
+use lazy_static::lazy_static;
 use reqwest::Client;
 use reqwest_cookie_store::{CookieStore, CookieStoreMutex};
 use scraper::{Html, Selector};
 
-use crate::types::CampusLoginData;
+use crate::types::{CampusLoginData, CdAuthData, UserBasicInfo};
 
-pub async fn cdlogin_get_cookie_json(login_data: &CampusLoginData) -> Result<String> {
+pub async fn cdlogin_get_jcookie_and_meta(
+    login_data: CampusLoginData,
+) -> Result<(CdAuthData, UserBasicInfo)> {
     let cookie_store = Arc::new(CookieStoreMutex::new(CookieStore::new(None)));
 
     let client = reqwest::Client::builder()
@@ -15,10 +19,19 @@ pub async fn cdlogin_get_cookie_json(login_data: &CampusLoginData) -> Result<Str
         .build()?;
 
     campus_login(&client, login_data).await?;
-    extract_cd_cookie(cookie_store)
+
+    let (hash, user_basic_info) = get_hash_and_userinfo(&client).await?;
+
+    let cd_auth_data = CdAuthData {
+        cookie: extract_cd_cookie(cookie_store)?,
+        user: user_basic_info.user.clone(),
+        hash,
+    };
+
+    Ok((cd_auth_data, user_basic_info))
 }
 
-async fn campus_login(client: &Client, login_data: &CampusLoginData) -> Result<()> {
+async fn campus_login(client: &Client, login_data: CampusLoginData) -> Result<()> {
     let resp = client
         .get("https://erp.campus-dual.de/sap/bc/webdynpro/sap/zba_initss?sap-client=100&sap-language=de&uri=https://selfservice.campus-dual.de/index/login")
         .send()
@@ -51,34 +64,55 @@ async fn campus_login(client: &Client, login_data: &CampusLoginData) -> Result<(
         .await?
         .error_for_status()?;
 
-    // check if title of redirect page implicates successful login
-    {
-        let zba_init_doc = Html::parse_document(&resp.text().await.unwrap());
-        match zba_init_doc
-            .select(&Selector::parse("title").unwrap())
-            .next()
-            .unwrap()
-            .inner_html()
-            .as_str()
-        {
-            "Initialisierung Selfservices" => Ok(()),
-            _ => Err(anyhow::anyhow!("Bad credentials")),
-        }
-    }
+    // if this cookie is set, the login was successful
+    resp.cookies()
+        .find(|c| c.domain().unwrap_or_default().contains("campus-dual.de"))
+        .context("c-d.de cookie missing")?;
+
+    Ok(())
 }
 
 fn extract_cd_cookie(cookie_store: Arc<CookieStoreMutex>) -> Result<String> {
-    let cookie = {
-        let store = cookie_store.lock().unwrap();
-        let cookie: cookie_store::Cookie = store
-            .iter_unexpired()
-            .find(|c| c.domain().unwrap_or_default().contains("campus-dual.de"))
-            .context("c-d.de cookie missing")?
-            .clone();
-
-        cookie
-    };
-    dbg!(&cookie);
+    let store = cookie_store.lock().unwrap();
+    let cookie: &cookie_store::Cookie = store
+        .iter_unexpired()
+        .find(|c| c.domain().unwrap_or_default().contains("campus-dual.de"))
+        .context("c-d.de cookie missing")?;
 
     Ok(serde_json::to_string(&cookie)?)
+}
+
+pub async fn get_hash_and_userinfo(client: &Client) -> Result<(String, UserBasicInfo)> {
+    let mut user_basic_info = UserBasicInfo::default();
+
+    let resp = client
+        .get("https://selfservice.campus-dual.de/index/login")
+        .send()
+        .await?
+        .error_for_status()?
+        .text()
+        .await?;
+
+    lazy_static! {
+        static ref RE_HASH: Regex = Regex::new(r#"hash="(\w+)";user="(\d+)";"#).unwrap();
+        static ref RE_STUDI: Regex = Regex::new(r#"<strong>Name:\s*</strong>(\w+),\s*(\w+).*<strong>\s*Seminargruppe:\s*</strong>([\w-]+).*<br>(.*)"#).unwrap();
+    };
+
+    let hash: String;
+
+    if let Some(captures) = RE_HASH.captures(&resp) {
+        hash = captures.get(1).unwrap().as_str().to_string();
+        user_basic_info.user = captures.get(2).unwrap().as_str().to_string();
+    } else {
+        return Err(anyhow::anyhow!("Hash not found"));
+    }
+
+    if let Some(captures) = RE_STUDI.captures(&resp) {
+        user_basic_info.last_name = captures.get(1).unwrap().as_str().to_string();
+        user_basic_info.first_name = captures.get(2).unwrap().as_str().to_string();
+        user_basic_info.seminar_group = captures.get(3).unwrap().as_str().to_string();
+        user_basic_info.seminar_name = captures.get(4).unwrap().as_str().trim().to_string();
+    }
+
+    Ok((hash, user_basic_info))
 }

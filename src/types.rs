@@ -13,6 +13,8 @@ pub struct Claims {
     pub exp: usize,
     pub iat: usize,
     pub cdcookie: String,
+    pub cduser: String,
+    pub cdhash: String,
 }
 
 // API Response type
@@ -22,14 +24,17 @@ pub struct ResponseError {
 }
 
 #[derive(serde::Serialize)]
-    pub struct Token {
-        pub token: String,
-    }
+pub struct LoginResponse {
+    pub token: String,
+    pub user: UserBasicInfo,
+}
 
 // Inserted by the auth middleware into the request extension
-#[derive(Clone)]
-pub struct UserCookieExt {
+#[derive(Debug, Clone)]
+pub struct CdAuthdataExt {
     pub cookie: String,
+    pub user: String,
+    pub hash: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -44,4 +49,44 @@ pub struct CampusDualSignupOption {
     pub name: String,
     pub verfahren: String,
     pub status: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Default)]
+pub struct UserBasicInfo {
+    pub first_name: String,
+    pub last_name: String,
+    pub seminar_group: String,
+    pub seminar_name: String,
+    pub user: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct CdAuthData {
+    pub cookie: String,
+    pub user: String,
+    pub hash: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CdExamStats {
+    #[serde(rename(deserialize = "EXAMS"))]
+    pub total: i64,
+
+    #[serde(rename(deserialize = "SUCCESS"))]
+    pub successful: i64,
+
+    #[serde(rename(deserialize = "FAILURE"))]
+    pub unsuccessful: i64,
+
+    #[serde(rename(deserialize = "BOOKED"))]
+    pub unassessed: i64,
+
+    #[serde(rename(deserialize = "MBOOKED"))]
+    pub booked: i64,
+
+    #[serde(rename(deserialize = "MODULES"))]
+    pub finished: i64,
+
+    #[serde(rename(deserialize = "WPCOUNT"))]
+    pub ronmodus: i64,
 }
