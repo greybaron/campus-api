@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use axum::{Extension, Json};
 use serde::{Deserialize, Serialize};
 // use anyhow::Result;
@@ -17,7 +19,11 @@ struct UserResponse {
 pub async fn get_grades(
     Extension(cd_cookie_and_hash): Extension<CdAuthdataExt>,
 ) -> Result<Json<Vec<CampusDualGrade>>, ResponseError> {
+    let now = Instant::now();
     let client = get_client_with_cd_cookie(cd_cookie_and_hash.cookie)?;
+    println!("Time to get client: {:.2?}", now.elapsed());
+
+    let now = Instant::now();
 
     let grade_html = client
         .get("https://selfservice.campus-dual.de/acwork/index")
@@ -26,8 +32,12 @@ pub async fn get_grades(
         .error_for_status()?
         .text()
         .await?;
+    println!("get grades req: {:.2?}", now.elapsed());
+
+    let now = Instant::now();
 
     let grades = extract_grades(grade_html)?;
+    println!("extract grades: {:.2?}", now.elapsed());
 
     Ok(Json(grades))
 }
