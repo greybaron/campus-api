@@ -1,7 +1,5 @@
 use axum::{
-    middleware,
-    routing::{get, post},
-    Router,
+    middleware, response::IntoResponse, routing::{get, post}, Router
 };
 use http::{header::CONTENT_TYPE, Method};
 use tower_http::cors::{Any, CorsLayer};
@@ -17,6 +15,7 @@ pub async fn app() -> Router {
         .allow_headers([CONTENT_TYPE]);
 
     Router::new()
+        .route("/", get(|| async { "API is reachable".into_response() }))
         .route("/signin", post(auth::sign_in))
         .route(
             "/get_grades",

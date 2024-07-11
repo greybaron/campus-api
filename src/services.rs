@@ -11,11 +11,6 @@ use crate::{
     types::{CampusDualGrade, CampusDualSignupOption, CdAuthdataExt, CdExamStats, ResponseError},
 };
 
-#[derive(Serialize, Deserialize)]
-struct UserResponse {
-    test: String,
-}
-
 pub async fn get_grades(
     Extension(cd_cookie_and_hash): Extension<CdAuthdataExt>,
 ) -> Result<Json<Vec<CampusDualGrade>>, ResponseError> {
