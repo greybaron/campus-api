@@ -10,7 +10,7 @@ mod types;
 async fn main() {
     let listener = TcpListener::bind("0.0.0.0:8080")
         .await
-        .expect("Unable to conne to connect to the server");
+        .expect("Unable to connect to the server");
 
     println!("Listening on {}", listener.local_addr().unwrap());
 

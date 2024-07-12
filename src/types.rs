@@ -41,7 +41,21 @@ pub struct CdAuthdataExt {
 pub struct CampusDualGrade {
     pub name: String,
     pub grade: String,
-    pub subgrades: usize,
+    pub total_passed: Option<bool>,
+    pub credit_points: i32,
+    pub akad_period: String,
+    pub subgrades: Vec<CampusDualSubGrade>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct CampusDualSubGrade {
+    pub name: String,
+    pub grade: String,
+    pub passed: Option<bool>,
+    pub beurteilung: String,
+    pub bekanntgabe: String,
+    pub wiederholung: Option<String>,
+    pub akad_period: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
