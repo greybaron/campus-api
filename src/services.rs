@@ -129,3 +129,24 @@ pub async fn get_examstats(
 
     Ok(Json(resp))
 }
+
+pub async fn get_stundenplan(
+    Extension(cd_authdata): Extension<CdAuthdataExt>,
+) -> Result<String, ResponseError> {
+    let client = reqwest::Client::new();
+
+    let user = cd_authdata.user;
+    let hash = cd_authdata.hash;
+
+    let resp = client
+        .get(format!(
+            "https://selfservice.campus-dual.de/room/json?userid={user}&hash={hash}&start=1720735200&end=1720821600"
+        ))
+        .send()
+        .await?
+        .error_for_status()?
+        .text()
+        .await?;
+
+    Ok(resp)
+}

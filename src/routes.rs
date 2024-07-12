@@ -40,5 +40,9 @@ pub async fn app() -> Router {
             "/get_examstats",
             get(services::get_examstats).layer(middleware::from_fn(auth::authorize)),
         )
+        .route(
+            "/stundenplan",
+            get(services::get_stundenplan).layer(middleware::from_fn(auth::authorize)),
+        )
         .layer(cors)
 }
