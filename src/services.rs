@@ -1,8 +1,5 @@
-use std::time::Instant;
-
 use axum::{Extension, Json};
-use serde::{Deserialize, Serialize};
-// use anyhow::Result;
+use std::time::Instant;
 
 use crate::{
     campus_backend::req_client_funcs::{
