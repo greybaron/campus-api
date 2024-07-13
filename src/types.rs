@@ -62,7 +62,13 @@ pub struct CampusDualSubGrade {
 pub struct CampusDualSignupOption {
     pub name: String,
     pub verfahren: String,
+    pub pruefart: String,
     pub status: String,
+    pub signup_information: String,
+    pub exam_date: Option<String>,
+    pub exam_time: Option<String>,
+    pub exam_room: Option<String>,
+    pub warning_message: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]

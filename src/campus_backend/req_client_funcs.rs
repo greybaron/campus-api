@@ -109,8 +109,6 @@ pub fn extract_grades(html_text: String) -> Result<Vec<CampusDualGrade>> {
         });
     }
 
-    println!("{:#?}", grades);
-
     Ok(grades)
 }
 
@@ -128,32 +126,85 @@ pub async fn extract_exam_signup_options(html_text: String) -> Result<Vec<Campus
         let l_id = line.value().attr("id").unwrap();
         let content_selector = &Selector::parse("td").unwrap();
         let mut content = line.select(content_selector);
-        let class = content.next().unwrap().text().next().unwrap();
-        let verfahren = content.next().unwrap().text().next().unwrap();
+
+        let name = content.next().unwrap().text().next().unwrap().to_string();
+        let verfahren = content.next().unwrap().text().next().unwrap().to_string();
+        let pruefart = content.next().unwrap().text().next().unwrap().to_string();
 
         let subline_selector = &Selector::parse(&format!(".child-of-{l_id}")).unwrap();
-        let status_icon_url = table
-            .select(subline_selector)
-            .next()
-            .unwrap()
+        let mut sublines = table.select(subline_selector);
+        let main_subline = sublines.next().unwrap();
+
+        let status_icon_url = main_subline
             .select(&Selector::parse("img").unwrap())
             .next()
             .unwrap()
             .value()
             .attr("src")
             .unwrap();
-
         let status = match status_icon_url {
             "/images/missed.png" => "🚫",
             "/images/yellow.png" => "📝",
             "/images/exclamation.jpg" => "⚠️",
-            _ => "???",
-        };
+            _ => "⁉️",
+        }
+        .to_string();
+
+        // my shoddy code demands that the iterator is over owned values and not references,
+        // else the iterator doesn't consume the values and causes wrapping after the first None
+        let mut main_subline_texts = main_subline.text().collect::<Vec<_>>().into_iter();
+
+        if main_subline_texts.len() == 0 {
+            signup_options.push(CampusDualSignupOption {
+                name,
+                verfahren,
+                pruefart,
+                status,
+                signup_information: "Daten konnten nicht extrahiert werden".to_string(),
+                exam_date: None,
+                exam_time: None,
+                exam_room: None,
+                warning_message: None,
+            });
+
+            continue;
+        }
+
+        let signup_information_messy = main_subline_texts.next().unwrap().trim_start();
+        let signup_information =
+            if let Some(stripped) = signup_information_messy.strip_suffix(", Prüfungstermin: ") {
+                stripped
+            } else {
+                signup_information_messy
+            }
+            .to_string();
+
+        let exam_date = main_subline_texts.next().map(|el| el.to_string());
+        let exam_time = main_subline_texts.nth(1).map(|el| el.to_string());
+        let exam_room = main_subline_texts
+            .next()
+            .map(|el| el.strip_prefix(", ").unwrap_or(el).to_string());
+
+        let warning_message = sublines.next().map(|second_subline| {
+            second_subline
+                .text()
+                .fold(String::new(), |a, b| a + b)
+                .trim_start()
+                // campusdual html is fucked in case of no time, so replace that but leave 1 space
+                .replace("   :  ", "")
+                .to_string()
+        });
 
         signup_options.push(CampusDualSignupOption {
-            name: class.to_string(),
-            verfahren: verfahren.to_string(),
-            status: status.to_string(),
+            name,
+            verfahren,
+            pruefart,
+            status,
+            signup_information,
+            exam_date,
+            exam_time,
+            exam_room,
+            warning_message,
         });
     }
 
