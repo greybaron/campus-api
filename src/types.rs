@@ -10,11 +10,11 @@ pub struct CampusLoginData {
 // JWT Claims
 #[derive(Serialize, Deserialize)]
 pub struct Claims {
-    pub exp: usize,
-    pub iat: usize,
-    pub cdcookie: String,
-    pub cduser: String,
-    pub cdhash: String,
+    pub exp: usize,       // expiration time
+    pub iat: usize,       // issued at
+    pub cdcookie: String, // Campus Dual cookie (for first type of CD requests)
+    pub cduser: String,   // Campus Dual user   (for second type)
+    pub cdhash: String,   // Campus Dual hash   (for second type)
 }
 
 // API Response type
