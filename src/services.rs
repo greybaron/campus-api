@@ -1,11 +1,18 @@
 use axum::{Extension, Json};
-use std::time::Instant;
+use fnv::FnvHasher;
+use std::{
+    hash::{Hash, Hasher},
+    time::Instant,
+};
 
 use crate::{
     campus_backend::req_client_funcs::{
         extract_exam_signup_options, extract_grades, get_client_with_cd_cookie,
     },
-    types::{CampusDualGrade, CampusDualSignupOption, CdAuthdataExt, CdExamStats, ResponseError},
+    types::{
+        CampusDualGrade, CampusDualSignupOption, CdAuthdataExt, CdExamStats, ResponseError,
+        StundenplanItem,
+    },
 };
 
 pub async fn get_grades(
@@ -132,21 +139,46 @@ pub async fn get_examstats(
 
 pub async fn get_stundenplan(
     Extension(cd_authdata): Extension<CdAuthdataExt>,
-) -> Result<String, ResponseError> {
+) -> Result<Json<Vec<StundenplanItem>>, ResponseError> {
     let client = reqwest::Client::new();
 
     let user = cd_authdata.user;
     let hash = cd_authdata.hash;
 
-    let resp = client
+    let mut stundenplan: Vec<StundenplanItem> = client
         .get(format!(
             "https://selfservice.campus-dual.de/room/json?userid={user}&hash={hash}&start=1720735200&end=1720821600"
         ))
         .send()
         .await?
         .error_for_status()?
-        .text()
+        .json()
         .await?;
 
-    Ok(resp)
+    for item in &mut stundenplan {
+        item.start *= 1000;
+        item.end *= 1000;
+        item.color = match item.color.as_str() {
+            "dunkelrot" => "#8B0000".to_string(),
+            _ => string_to_rgb(&item.title),
+        }
+    }
+
+    Ok(Json(stundenplan))
+}
+
+fn string_to_rgb(input: &str) -> String {
+    // Create a hasher
+    let mut hasher = FnvHasher::default();
+
+    // Hash the input string
+    input.hash(&mut hasher);
+    let hash = hasher.finish();
+
+    // Extract RGB components from the hash
+    let r = (hash & 0xFF) as u8;
+    let g = ((hash >> 8) & 0xFF) as u8;
+    let b = ((hash >> 16) & 0xFF) as u8;
+
+    format!("#{:02X}{:02X}{:02X}", r, g, b)
 }

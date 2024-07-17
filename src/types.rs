@@ -110,3 +110,20 @@ pub struct CdExamStats {
     #[serde(rename(deserialize = "WPCOUNT"))]
     pub ronmodus: i64,
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct StundenplanItem {
+    #[serde(rename = "allDay")]
+    all_day: bool,
+    pub color: String,
+    description: String,
+    editable: bool,
+    pub end: i64,
+    instructor: String,
+    remarks: String,
+    room: String,
+    sinstructor: String,
+    sroom: String,
+    pub start: i64,
+    pub title: String,
+}
