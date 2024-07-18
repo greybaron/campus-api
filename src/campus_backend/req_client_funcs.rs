@@ -2,6 +2,8 @@ use std::sync::Arc;
 
 use anyhow::{Context, Result};
 use cookie_store::CookieStore;
+use lazy_static::lazy_static;
+use regex::Regex;
 use reqwest::Url;
 use reqwest_cookie_store::CookieStoreMutex;
 use scraper::{Html, Selector};
@@ -165,6 +167,7 @@ pub async fn extract_exam_signup_options(html_text: String) -> Result<Vec<Campus
                 exam_time: None,
                 exam_room: None,
                 warning_message: None,
+                signup_until: None,
             });
 
             continue;
@@ -194,6 +197,13 @@ pub async fn extract_exam_signup_options(html_text: String) -> Result<Vec<Campus
                 .replace("   :  ", "")
                 .to_string()
         });
+        lazy_static! {
+            static ref RE: Regex = Regex::new(r"bis (\d{2}\.\d{2}\.\d{4})").unwrap();
+        }
+        let signup_until = warning_message.as_ref().and_then(|msg| {
+            RE.captures(&msg)
+                .and_then(|caps| caps.get(1).map(|m| m.as_str().to_string()))
+        });
 
         signup_options.push(CampusDualSignupOption {
             name,
@@ -205,6 +215,7 @@ pub async fn extract_exam_signup_options(html_text: String) -> Result<Vec<Campus
             exam_time,
             exam_room,
             warning_message,
+            signup_until,
         });
     }
 

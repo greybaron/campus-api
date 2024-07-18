@@ -25,7 +25,7 @@ pub async fn app() -> Router {
             get(services::get_grades).layer(middleware::from_fn(auth::authorize)),
         )
         .route(
-            "/get_signup",
+            "/get_examsignup",
             get(services::get_signup_options).layer(middleware::from_fn(auth::authorize)),
         )
         .route(

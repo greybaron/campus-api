@@ -69,6 +69,7 @@ pub struct CampusDualSignupOption {
     pub exam_time: Option<String>,
     pub exam_room: Option<String>,
     pub warning_message: Option<String>,
+    pub signup_until: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]
