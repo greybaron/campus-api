@@ -160,7 +160,7 @@ pub async fn get_stundenplan(
         item.end *= 1000;
         item.color = match item.color.as_str() {
             "dunkelrot" => "#8B0000".to_string(),
-            _ => string_to_rgb(&item.title),
+            _ => string_to_rgb(&format!("0{}0", item.title)),
         }
     }
 
