@@ -201,7 +201,7 @@ pub async fn extract_exam_signup_options(html_text: String) -> Result<Vec<Campus
             static ref RE: Regex = Regex::new(r"bis (\d{2}\.\d{2}\.\d{4})").unwrap();
         }
         let signup_until = warning_message.as_ref().and_then(|msg| {
-            RE.captures(&msg)
+            RE.captures(msg)
                 .and_then(|caps| caps.get(1).map(|m| m.as_str().to_string()))
         });
 

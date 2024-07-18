@@ -1,5 +1,6 @@
 use axum::{Extension, Json};
 use fnv::FnvHasher;
+use http::StatusCode;
 use std::{
     hash::{Hash, Hasher},
     time::Instant,
@@ -39,6 +40,29 @@ pub async fn get_grades(
     println!("extract grades: {:.2?}", now.elapsed());
 
     Ok(Json(grades))
+}
+
+pub async fn check_session_alive(
+    Extension(cd_cookie_and_hash): Extension<CdAuthdataExt>,
+) -> Result<(), ResponseError> {
+    let client = get_client_with_cd_cookie(cd_cookie_and_hash.cookie)?;
+
+    let resp = client
+        .get("https://erp.campus-dual.de/sap/bc/webdynpro/sap/zba_initss?sap-client=100&sap-language=de&uri=https://selfservice.campus-dual.de/index/login")
+        .send()
+        .await?;
+
+    match resp.status().as_u16() {
+        200 => Err(ResponseError {
+            message: "".to_string(),
+            status_code: StatusCode::UNAUTHORIZED,
+        }),
+        500 => Ok(()),
+        _ => Err(ResponseError {
+            message: "CD healthcheck failed".to_string(),
+            status_code: StatusCode::INTERNAL_SERVER_ERROR,
+        }),
+    }
 }
 
 pub async fn get_signup_options(
