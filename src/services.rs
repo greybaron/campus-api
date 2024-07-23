@@ -8,11 +8,12 @@ use std::{
 
 use crate::{
     campus_backend::req_client_funcs::{
-        extract_exam_signup_options, extract_grades, get_client_with_cd_cookie,
+        extract_exam_signup_options, extract_exam_verfahren_options, extract_grades,
+        get_client_with_cd_cookie,
     },
     types::{
-        CampusDualGrade, CampusDualSignupOption, CdAuthdataExt, CdExamStats, ResponseError,
-        StundenplanItem,
+        CampusDualGrade, CampusDualSignupOption, CampusDualVerfahrenOption, CdAuthdataExt,
+        CdExamStats, ResponseError, StundenplanItem,
     },
 };
 
@@ -65,7 +66,7 @@ pub async fn check_session_alive(
     }
 }
 
-pub async fn get_signup_options(
+pub async fn get_examsignup(
     Extension(cd_cookie_and_hash): Extension<CdAuthdataExt>,
 ) -> Result<Json<Vec<CampusDualSignupOption>>, ResponseError> {
     let client = get_client_with_cd_cookie(cd_cookie_and_hash.cookie)?;
@@ -80,6 +81,23 @@ pub async fn get_signup_options(
     let signup_options = extract_exam_signup_options(exam_signup_html).await?;
 
     Ok(Json(signup_options))
+}
+
+pub async fn get_examverfahren(
+    Extension(cd_cookie_and_hash): Extension<CdAuthdataExt>,
+) -> Result<Json<Vec<CampusDualVerfahrenOption>>, ResponseError> {
+    let client = get_client_with_cd_cookie(cd_cookie_and_hash.cookie)?;
+    let exam_verfahren_html = client
+        .get("https://selfservice.campus-dual.de/acwork/cancelproc")
+        .send()
+        .await?
+        .error_for_status()?
+        .text()
+        .await?;
+
+    let signup_verfahren = extract_exam_verfahren_options(exam_verfahren_html).await?;
+
+    Ok(Json(signup_verfahren))
 }
 
 pub async fn get_ects(
