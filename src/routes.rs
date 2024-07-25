@@ -33,6 +33,14 @@ pub async fn app() -> Router {
             get(services::get_examsignup).layer(middleware::from_fn(auth::authorize)),
         )
         .route(
+            "/registerexam",
+            post(services::post_registerexam).layer(middleware::from_fn(auth::authorize)),
+        )
+        .route(
+            "/cancelexam",
+            post(services::post_cancelexam).layer(middleware::from_fn(auth::authorize)),
+        )
+        .route(
             "/get_examverfahren",
             get(services::get_examverfahren).layer(middleware::from_fn(auth::authorize)),
         )

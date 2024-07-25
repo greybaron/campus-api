@@ -13,7 +13,7 @@ use crate::{
     },
     types::{
         CampusDualGrade, CampusDualSignupOption, CampusDualVerfahrenOption, CdAuthdataExt,
-        CdExamStats, ResponseError, StundenplanItem,
+        CdExamStats, ExamRegistrationMetadata, ResponseError, StundenplanItem,
     },
 };
 
@@ -83,6 +83,49 @@ pub async fn get_examsignup(
     Ok(Json(signup_options))
 }
 
+pub async fn post_registerexam(
+    Extension(cd_cookie_and_hash): Extension<CdAuthdataExt>,
+    Json(examregist_meta): Json<ExamRegistrationMetadata>,
+) -> Result<String, ResponseError> {
+    let client = reqwest::Client::new();
+    let exam_regist_resp = client
+        .get(format!(
+            "https://selfservice.campus-dual.de/acwork/registerexam?userid={}&assessment={}&peryr={}&perid={}&offerno={}&hash={}",
+            cd_cookie_and_hash.user,
+            examregist_meta.assessment,
+            examregist_meta.peryr,
+            examregist_meta.perid,
+            examregist_meta.offerno,
+            cd_cookie_and_hash.hash,
+        ))
+        .send()
+        .await?
+        .error_for_status()?;
+
+    dbg!(exam_regist_resp.status());
+
+    Ok(exam_regist_resp.text().await?)
+}
+
+pub async fn post_cancelexam(
+    Extension(cd_cookie_and_hash): Extension<CdAuthdataExt>,
+    Json(examregist_meta): Json<ExamRegistrationMetadata>,
+) -> Result<String, ResponseError> {
+    let client = reqwest::Client::new();
+    let exam_regist_resp = client
+        .get(format!(
+            "https://selfservice.campus-dual.de/acwork/cancelexam?userid={}&objid={}&hash={}",
+            cd_cookie_and_hash.user, examregist_meta.assessment, cd_cookie_and_hash.hash
+        ))
+        .send()
+        .await?
+        .error_for_status()?;
+
+    dbg!(exam_regist_resp.status());
+
+    Ok(exam_regist_resp.text().await?)
+}
+
 pub async fn get_examverfahren(
     Extension(cd_cookie_and_hash): Extension<CdAuthdataExt>,
 ) -> Result<Json<Vec<CampusDualVerfahrenOption>>, ResponseError> {
@@ -103,7 +146,6 @@ pub async fn get_examverfahren(
 pub async fn get_ects(
     Extension(cd_authdata): Extension<CdAuthdataExt>,
 ) -> Result<String, ResponseError> {
-    // dbg!(cd_cookie_and_hash);
     let client = reqwest::Client::new();
 
     let user = cd_authdata.user;
