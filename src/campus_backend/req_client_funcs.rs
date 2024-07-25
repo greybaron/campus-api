@@ -6,10 +6,11 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use reqwest::Url;
 use reqwest_cookie_store::CookieStoreMutex;
-use scraper::{Html, Selector};
+use scraper::{selectable::Selectable, Html, Selector};
 
 use crate::types::{
     CampusDualGrade, CampusDualSignupOption, CampusDualSubGrade, CampusDualVerfahrenOption,
+    ExamRegistrationMetadata,
 };
 
 pub fn get_client_with_cd_cookie(j_cookie: String) -> Result<reqwest::Client> {
@@ -139,6 +140,16 @@ pub async fn extract_exam_signup_options(html_text: String) -> Result<Vec<Campus
         let mut sublines = table.select(subline_selector);
         let main_subline = sublines.next().unwrap();
 
+        let internal_metadata = main_subline
+            .select(&Selector::parse("td>a.booking").unwrap())
+            .next()
+            .map(|meta_el| ExamRegistrationMetadata {
+                assessment: meta_el.value().attr("data-evob_objid").unwrap().to_string(),
+                peryr: meta_el.value().attr("data-peryr").unwrap().to_string(),
+                perid: meta_el.value().attr("data-perid").unwrap().to_string(),
+                offerno: meta_el.value().attr("data-offerno").unwrap().to_string(),
+            });
+
         let status_icon_url = main_subline
             .select(&Selector::parse("img").unwrap())
             .next()
@@ -170,6 +181,7 @@ pub async fn extract_exam_signup_options(html_text: String) -> Result<Vec<Campus
                 exam_room: None,
                 warning_message: None,
                 signup_until: None,
+                internal_metadata: None,
             });
 
             continue;
@@ -218,6 +230,7 @@ pub async fn extract_exam_signup_options(html_text: String) -> Result<Vec<Campus
             exam_room,
             warning_message,
             signup_until,
+            internal_metadata,
         });
     }
 
@@ -248,6 +261,16 @@ pub async fn extract_exam_verfahren_options(
         let subline_selector = &Selector::parse(&format!(".child-of-{l_id}")).unwrap();
         let mut sublines = table.select(subline_selector);
         let main_subline = sublines.next().unwrap();
+
+        let internal_metadata = main_subline
+            .select(&Selector::parse("td>a.booking").unwrap())
+            .next()
+            .map(|meta_el| ExamRegistrationMetadata {
+                assessment: meta_el.value().attr("data-evob_objid").unwrap().to_string(),
+                peryr: meta_el.value().attr("data-peryr").unwrap().to_string(),
+                perid: meta_el.value().attr("data-perid").unwrap().to_string(),
+                offerno: meta_el.value().attr("data-offerno").unwrap().to_string(),
+            });
 
         let status_icon_url = main_subline
             .select(&Selector::parse("img").unwrap())
@@ -280,6 +303,7 @@ pub async fn extract_exam_verfahren_options(
                 exam_room: None,
                 warning_message: None,
                 signoff_until: None,
+                internal_metadata: None,
             });
 
             continue;
@@ -328,6 +352,7 @@ pub async fn extract_exam_verfahren_options(
             exam_room,
             warning_message,
             signoff_until,
+            internal_metadata,
         });
     }
 

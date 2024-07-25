@@ -70,6 +70,15 @@ pub struct CampusDualSignupOption {
     pub exam_room: Option<String>,
     pub warning_message: Option<String>,
     pub signup_until: Option<String>,
+    pub internal_metadata: Option<ExamRegistrationMetadata>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ExamRegistrationMetadata {
+    pub assessment: String,
+    pub peryr: String,
+    pub perid: String,
+    pub offerno: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -84,6 +93,7 @@ pub struct CampusDualVerfahrenOption {
     pub exam_room: Option<String>,
     pub warning_message: Option<String>,
     pub signoff_until: Option<String>,
+    pub internal_metadata: Option<ExamRegistrationMetadata>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]
