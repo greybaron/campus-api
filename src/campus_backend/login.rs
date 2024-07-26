@@ -18,20 +18,21 @@ pub async fn cdlogin_get_jcookie_and_meta(
         .cookie_provider(cookie_store.clone())
         .build()?;
 
-    campus_login(&client, login_data).await?;
+    campus_login(&client, &login_data).await?;
 
     let (hash, user_basic_info) = get_hash_and_userinfo(&client).await?;
 
     let cd_auth_data = CdAuthData {
         cookie: extract_cd_cookie(cookie_store)?,
-        user: user_basic_info.user.clone(),
         hash,
+        user: login_data.username,
+        password: login_data.password,
     };
 
     Ok((cd_auth_data, user_basic_info))
 }
 
-async fn campus_login(client: &Client, login_data: CampusLoginData) -> Result<()> {
+async fn campus_login(client: &Client, login_data: &CampusLoginData) -> Result<()> {
     let whole_now = Instant::now();
     let resp = client
         .get("https://erp.campus-dual.de/sap/bc/webdynpro/sap/zba_initss?sap-client=100&sap-language=de&uri=https://selfservice.campus-dual.de/index/login")

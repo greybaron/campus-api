@@ -7,21 +7,22 @@ use std::{
 };
 
 use crate::{
+    auth::sign_in,
     campus_backend::req_client_funcs::{
         extract_exam_signup_options, extract_exam_verfahren_options, extract_grades,
         get_client_with_cd_cookie,
     },
     types::{
-        CampusDualGrade, CampusDualSignupOption, CampusDualVerfahrenOption, CdAuthdataExt,
-        CdExamStats, ExamRegistrationMetadata, ResponseError, StundenplanItem,
+        CampusDualGrade, CampusDualSignupOption, CampusDualVerfahrenOption, CampusLoginData,
+        CdAuthData, CdExamStats, ExamRegistrationMetadata, ResponseError, StundenplanItem,
     },
 };
 
 pub async fn get_grades(
-    Extension(cd_cookie_and_hash): Extension<CdAuthdataExt>,
+    Extension(cd_auth_data): Extension<CdAuthData>,
 ) -> Result<Json<Vec<CampusDualGrade>>, ResponseError> {
     let now = Instant::now();
-    let client = get_client_with_cd_cookie(cd_cookie_and_hash.cookie)?;
+    let client = get_client_with_cd_cookie(cd_auth_data.cookie)?;
     println!("Time to get client: {:.2?}", now.elapsed());
 
     let now = Instant::now();
@@ -43,10 +44,12 @@ pub async fn get_grades(
     Ok(Json(grades))
 }
 
-pub async fn check_session_alive(
-    Extension(cd_cookie_and_hash): Extension<CdAuthdataExt>,
-) -> Result<(), ResponseError> {
-    let client = get_client_with_cd_cookie(cd_cookie_and_hash.cookie)?;
+pub async fn check_revive_session(
+    Extension(cd_auth_data): Extension<CdAuthData>,
+) -> Result<String, ResponseError> {
+    println!("checking session...");
+
+    let client = get_client_with_cd_cookie(cd_auth_data.cookie)?;
 
     let resp = client
         .get("https://erp.campus-dual.de/sap/bc/webdynpro/sap/zba_initss?sap-client=100&sap-language=de&uri=https://selfservice.campus-dual.de/index/login")
@@ -54,22 +57,37 @@ pub async fn check_session_alive(
         .await?;
 
     match resp.status().as_u16() {
-        200 => Err(ResponseError {
-            message: "".to_string(),
-            status_code: StatusCode::UNAUTHORIZED,
-        }),
-        500 => Ok(()),
+        // 200 means the old session is not alive anymore
+        200 => {
+            println!("session was dead");
+            let new_login_response = sign_in(Json(CampusLoginData {
+                username: cd_auth_data.user,
+                password: cd_auth_data.password,
+            }))
+            .await;
+
+            println!("revive ok?={}", new_login_response.is_ok());
+
+            match new_login_response {
+                Ok(Json(login_response)) => Ok(login_response.token),
+                Err(_) => Err(ResponseError {
+                    message: "CD healthcheck failed".to_string(),
+                    status_code: StatusCode::UNAUTHORIZED,
+                }),
+            }
+        }
+        500 => Ok("".to_string()),
         _ => Err(ResponseError {
             message: "CD healthcheck failed".to_string(),
-            status_code: StatusCode::INTERNAL_SERVER_ERROR,
+            status_code: resp.status(),
         }),
     }
 }
 
 pub async fn get_examsignup(
-    Extension(cd_cookie_and_hash): Extension<CdAuthdataExt>,
+    Extension(cd_auth_data): Extension<CdAuthData>,
 ) -> Result<Json<Vec<CampusDualSignupOption>>, ResponseError> {
-    let client = get_client_with_cd_cookie(cd_cookie_and_hash.cookie)?;
+    let client = get_client_with_cd_cookie(cd_auth_data.cookie)?;
     let exam_signup_html = client
         .get("https://selfservice.campus-dual.de/acwork/expproc")
         .send()
@@ -84,19 +102,19 @@ pub async fn get_examsignup(
 }
 
 pub async fn post_registerexam(
-    Extension(cd_cookie_and_hash): Extension<CdAuthdataExt>,
+    Extension(cd_auth_data): Extension<CdAuthData>,
     Json(examregist_meta): Json<ExamRegistrationMetadata>,
 ) -> Result<String, ResponseError> {
     let client = reqwest::Client::new();
     let exam_regist_resp = client
         .get(format!(
             "https://selfservice.campus-dual.de/acwork/registerexam?userid={}&assessment={}&peryr={}&perid={}&offerno={}&hash={}",
-            cd_cookie_and_hash.user,
+            cd_auth_data.user,
             examregist_meta.assessment,
             examregist_meta.peryr,
             examregist_meta.perid,
             examregist_meta.offerno,
-            cd_cookie_and_hash.hash,
+            cd_auth_data.hash,
         ))
         .send()
         .await?
@@ -108,14 +126,14 @@ pub async fn post_registerexam(
 }
 
 pub async fn post_cancelexam(
-    Extension(cd_cookie_and_hash): Extension<CdAuthdataExt>,
+    Extension(cd_auth_data): Extension<CdAuthData>,
     Json(examregist_meta): Json<ExamRegistrationMetadata>,
 ) -> Result<String, ResponseError> {
     let client = reqwest::Client::new();
     let exam_regist_resp = client
         .get(format!(
             "https://selfservice.campus-dual.de/acwork/cancelexam?userid={}&objid={}&hash={}",
-            cd_cookie_and_hash.user, examregist_meta.assessment, cd_cookie_and_hash.hash
+            cd_auth_data.user, examregist_meta.assessment, cd_auth_data.hash
         ))
         .send()
         .await?
@@ -127,9 +145,9 @@ pub async fn post_cancelexam(
 }
 
 pub async fn get_examverfahren(
-    Extension(cd_cookie_and_hash): Extension<CdAuthdataExt>,
+    Extension(cd_auth_data): Extension<CdAuthData>,
 ) -> Result<Json<Vec<CampusDualVerfahrenOption>>, ResponseError> {
-    let client = get_client_with_cd_cookie(cd_cookie_and_hash.cookie)?;
+    let client = get_client_with_cd_cookie(cd_auth_data.cookie)?;
     let exam_verfahren_html = client
         .get("https://selfservice.campus-dual.de/acwork/cancelproc")
         .send()
@@ -144,7 +162,7 @@ pub async fn get_examverfahren(
 }
 
 pub async fn get_ects(
-    Extension(cd_authdata): Extension<CdAuthdataExt>,
+    Extension(cd_authdata): Extension<CdAuthData>,
 ) -> Result<String, ResponseError> {
     let client = reqwest::Client::new();
 
@@ -166,7 +184,7 @@ pub async fn get_ects(
 }
 
 pub async fn get_fachsem(
-    Extension(cd_authdata): Extension<CdAuthdataExt>,
+    Extension(cd_authdata): Extension<CdAuthData>,
 ) -> Result<String, ResponseError> {
     let client = reqwest::Client::new();
 
@@ -197,7 +215,7 @@ pub async fn get_fachsem(
 }
 
 pub async fn get_examstats(
-    Extension(cd_authdata): Extension<CdAuthdataExt>,
+    Extension(cd_authdata): Extension<CdAuthData>,
 ) -> Result<Json<CdExamStats>, ResponseError> {
     // CAMPUSDUAL PIECHART:
     // daten/partitionen: ['erfolgreich', 0], ['nicht bestanden', 0], ['gebucht', 0]
@@ -222,7 +240,7 @@ pub async fn get_examstats(
 }
 
 pub async fn get_stundenplan(
-    Extension(cd_authdata): Extension<CdAuthdataExt>,
+    Extension(cd_authdata): Extension<CdAuthData>,
 ) -> Result<Json<Vec<StundenplanItem>>, ResponseError> {
     let client = reqwest::Client::new();
 

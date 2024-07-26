@@ -21,8 +21,8 @@ pub async fn app() -> Router {
         .route("/", get(|| async { "API is reachable".into_response() }))
         .route("/signin", post(auth::sign_in))
         .route(
-            "/check_session_alive",
-            get(services::check_session_alive).layer(middleware::from_fn(auth::authorize)),
+            "/check_revive_session",
+            get(services::check_revive_session).layer(middleware::from_fn(auth::authorize)),
         )
         .route(
             "/get_grades",

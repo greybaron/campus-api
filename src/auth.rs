@@ -8,11 +8,15 @@ use axum::{
 };
 
 use chrono::{Duration, Utc};
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
+use jsonwebtoken::{decode, encode, Header, TokenData, Validation};
 use serde_json::json;
 
-use crate::types::{CampusLoginData, CdAuthData, CdAuthdataExt, Claims, ResponseError};
 use crate::{campus_backend::login::cdlogin_get_jcookie_and_meta, types::LoginResponse};
+use crate::{
+    constants::{JWT_DEC_KEY, JWT_ENC_KEY},
+    encryption::{decrypt, encrypt},
+    types::{CampusLoginData, CdAuthData, Claims, ResponseError},
+};
 
 impl IntoResponse for ResponseError {
     fn into_response(self) -> Response<Body> {
@@ -42,39 +46,40 @@ impl From<reqwest::Error> for ResponseError {
     }
 }
 
-pub fn encode_jwt(cd_auth_data: CdAuthData) -> Result<String, StatusCode> {
-    let jwt_secret: String = "tshcnritshmieohnoentshesntsmo".to_string();
+impl From<serde_json::Error> for ResponseError {
+    fn from(_: serde_json::Error) -> Self {
+        ResponseError {
+            message: "Internal Server Error".to_string(),
+            status_code: StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+}
 
+pub fn encode_jwt(cd_auth_data: CdAuthData) -> Result<String, StatusCode> {
     let now = Utc::now();
-    let expire: chrono::TimeDelta = Duration::hours(24);
+    let expire: chrono::TimeDelta = Duration::weeks(2);
     let exp: usize = (now + expire).timestamp() as usize;
     let iat: usize = now.timestamp() as usize;
+
+    let (nonce, cipher) = encrypt(
+        &serde_json::to_string(&cd_auth_data).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?,
+    )?;
 
     let claim = Claims {
         iat,
         exp,
-        cdcookie: cd_auth_data.cookie,
-        cduser: cd_auth_data.user,
-        cdhash: cd_auth_data.hash,
+        nonce,
+        cipher,
     };
 
-    encode(
-        &Header::default(),
-        &claim,
-        &EncodingKey::from_secret(jwt_secret.as_ref()),
-    )
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    encode(&Header::default(), &claim, JWT_ENC_KEY.get().unwrap())
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
 
 pub fn decode_jwt(jwt: String) -> Result<TokenData<Claims>, StatusCode> {
-    let jwt_secret = "tshcnritshmieohnoentshesntsmo".to_string();
-
-    let result: Result<TokenData<Claims>, StatusCode> = decode(
-        &jwt,
-        &DecodingKey::from_secret(jwt_secret.as_ref()),
-        &Validation::default(),
-    )
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR);
+    let result: Result<TokenData<Claims>, StatusCode> =
+        decode(&jwt, JWT_DEC_KEY.get().unwrap(), &Validation::default())
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR);
     result
 }
 
@@ -109,13 +114,14 @@ pub async fn authorize(mut req: Request, next: Next) -> Result<Response<Body>, R
         }
     };
 
-    let user_cookie_hash = CdAuthdataExt {
-        cookie: token_data.claims.cdcookie,
-        user: token_data.claims.cduser,
-        hash: token_data.claims.cdhash,
-    };
+    let cd_auth_data_str = decrypt(&token_data.claims.nonce, &token_data.claims.cipher)?;
+    let cd_auth_data: CdAuthData =
+        serde_json::from_str(&cd_auth_data_str).map_err(|_| ResponseError {
+            message: "Invalid JWT claims".to_string(),
+            status_code: StatusCode::UNAUTHORIZED,
+        })?;
 
-    req.extensions_mut().insert(user_cookie_hash);
+    req.extensions_mut().insert(cd_auth_data);
 
     Ok(next.run(req).await)
 }

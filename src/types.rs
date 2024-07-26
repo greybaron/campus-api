@@ -1,7 +1,7 @@
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct CampusLoginData {
     pub username: String,
     pub password: String,
@@ -10,11 +10,10 @@ pub struct CampusLoginData {
 // JWT Claims
 #[derive(Serialize, Deserialize)]
 pub struct Claims {
-    pub exp: usize,       // expiration time
-    pub iat: usize,       // issued at
-    pub cdcookie: String, // Campus Dual cookie (for first type of CD requests)
-    pub cduser: String,   // Campus Dual user   (for second type)
-    pub cdhash: String,   // Campus Dual hash   (for second type)
+    pub exp: usize,     // expiration time
+    pub iat: usize,     // issued at
+    pub nonce: String,  // AES nonce
+    pub cipher: String, // AES cipher (CdAuthData)
 }
 
 // API Response type
@@ -30,11 +29,12 @@ pub struct LoginResponse {
 }
 
 // Inserted by the auth middleware into the request extension
-#[derive(Debug, Clone)]
-pub struct CdAuthdataExt {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CdAuthData {
     pub cookie: String,
-    pub user: String,
     pub hash: String,
+    pub user: String,
+    pub password: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -103,13 +103,6 @@ pub struct UserBasicInfo {
     pub seminar_group: String,
     pub seminar_name: String,
     pub user: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct CdAuthData {
-    pub cookie: String,
-    pub user: String,
-    pub hash: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
