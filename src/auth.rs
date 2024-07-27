@@ -57,7 +57,7 @@ impl From<serde_json::Error> for ResponseError {
 
 pub fn encode_jwt(cd_auth_data: CdAuthData) -> Result<String, StatusCode> {
     let now = Utc::now();
-    let expire: chrono::TimeDelta = Duration::weeks(2);
+    let expire: chrono::TimeDelta = Duration::weeks(13);
     let exp: usize = (now + expire).timestamp() as usize;
     let iat: usize = now.timestamp() as usize;
 
