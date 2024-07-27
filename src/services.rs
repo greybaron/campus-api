@@ -14,7 +14,8 @@ use crate::{
     },
     types::{
         CampusDualGrade, CampusDualSignupOption, CampusDualVerfahrenOption, CampusLoginData,
-        CdAuthData, CdExamStats, ExamRegistrationMetadata, ResponseError, StundenplanItem,
+        CdAuthData, CdExamStats, ExamRegistrationMetadata, LoginResponse, ResponseError,
+        StundenplanItem,
     },
 };
 
@@ -46,7 +47,7 @@ pub async fn get_grades(
 
 pub async fn check_revive_session(
     Extension(cd_auth_data): Extension<CdAuthData>,
-) -> Result<String, ResponseError> {
+) -> Result<Json<Option<LoginResponse>>, ResponseError> {
     println!("checking session...");
 
     let client = get_client_with_cd_cookie(cd_auth_data.cookie)?;
@@ -69,14 +70,14 @@ pub async fn check_revive_session(
             println!("revive ok?={}", new_login_response.is_ok());
 
             match new_login_response {
-                Ok(Json(login_response)) => Ok(login_response.token),
+                Ok(Json(login_response)) => Ok(Json(Some(login_response))),
                 Err(_) => Err(ResponseError {
                     message: "CD healthcheck failed".to_string(),
                     status_code: StatusCode::UNAUTHORIZED,
                 }),
             }
         }
-        500 => Ok("".to_string()),
+        500 => Ok(Json(None)),
         _ => Err(ResponseError {
             message: "CD healthcheck failed".to_string(),
             status_code: resp.status(),
