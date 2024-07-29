@@ -145,3 +145,75 @@ pub struct StundenplanItem {
     pub start: i64,
     pub title: String,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+struct LatestReminder {
+    #[serde(rename(deserialize = "ACAD_SESSION"))]
+    acad_session: String,
+    #[serde(rename(deserialize = "ACAD_YEAR"))]
+    acad_year: String,
+    #[serde(rename(deserialize = "AGRDATE"))]
+    agrdate: String,
+    #[serde(rename(deserialize = "AGRTYPE"))]
+    agrtype: String,
+    #[serde(rename(deserialize = "AWOBJECT"))]
+    awobject: String,
+    #[serde(rename(deserialize = "AWOBJECT_SHORT"))]
+    awobject_short: String,
+    #[serde(rename(deserialize = "AWOTYPE"))]
+    awotype: String,
+    #[serde(rename(deserialize = "AWSTATUS"))]
+    awstatus: String,
+    #[serde(rename(deserialize = "BOOKDATE"))]
+    bookdate: String,
+    #[serde(rename(deserialize = "BOOKREASON"))]
+    bookreason: String,
+    #[serde(rename(deserialize = "CPGRADED"))]
+    cpgraded: String,
+    #[serde(rename(deserialize = "CPUNIT"))]
+    cpunit: String,
+    #[serde(rename(deserialize = "GRADESYMBOL"))]
+    gradesymbol: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct UpcomingReminder {
+    #[serde(rename(deserialize = "BEGUZ"))]
+    beguz: String,
+    #[serde(rename(deserialize = "COMMENT"))]
+    comment: String,
+    #[serde(rename(deserialize = "ENDUZ"))]
+    enduz: String,
+    #[serde(rename(deserialize = "EVDAT"))]
+    evdat: String,
+    #[serde(rename(deserialize = "INSTRUCTOR"))]
+    instructor: String,
+    #[serde(rename(deserialize = "LOCATION"))]
+    location: String,
+    #[serde(rename(deserialize = "OBJID"))]
+    objid: String,
+    #[serde(rename(deserialize = "ROOM"))]
+    room: String,
+    #[serde(rename(deserialize = "SINSTRUCTOR"))]
+    sinstructor: String,
+    #[serde(rename(deserialize = "SM_SHORT"))]
+    sm_short: String,
+    #[serde(rename(deserialize = "SM_STEXT"))]
+    sm_stext: String,
+    #[serde(rename(deserialize = "SROOM"))]
+    sroom: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CampusReminders {
+    #[serde(rename(deserialize = "ELECTIVES"))]
+    electives: i64,
+    #[serde(rename(deserialize = "EXAMS"))]
+    exams: i64,
+    #[serde(rename(deserialize = "LATEST"))]
+    latest: Vec<LatestReminder>,
+    #[serde(rename(deserialize = "SEMESTER"))]
+    semester: i64,
+    #[serde(rename(deserialize = "UPCOMING"))]
+    upcoming: Vec<UpcomingReminder>,
+}

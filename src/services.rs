@@ -14,8 +14,8 @@ use crate::{
     },
     types::{
         CampusDualGrade, CampusDualSignupOption, CampusDualVerfahrenOption, CampusLoginData,
-        CdAuthData, CdExamStats, ExamRegistrationMetadata, LoginResponse, ResponseError,
-        StundenplanItem,
+        CampusReminders, CdAuthData, CdExamStats, ExamRegistrationMetadata, LoginResponse,
+        ResponseError, StundenplanItem,
     },
 };
 
@@ -284,4 +284,25 @@ fn string_to_rgb(input: &str) -> String {
     let b = ((hash >> 16) & 0xFF) as u8;
 
     format!("#{:02X}{:02X}{:02X}", r, g, b)
+}
+
+pub async fn get_reminders(
+    Extension(cd_authdata): Extension<CdAuthData>,
+) -> Result<Json<CampusReminders>, ResponseError> {
+    let client = reqwest::Client::new();
+
+    let user = cd_authdata.user;
+    let hash = cd_authdata.hash;
+
+    let resp = client
+        .get(format!(
+            "https://selfservice.campus-dual.de/dash/getreminders?user={user}&hash={hash}"
+        ))
+        .send()
+        .await?
+        .error_for_status()?
+        .json::<CampusReminders>()
+        .await?;
+
+    Ok(Json(resp))
 }
