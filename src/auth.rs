@@ -132,7 +132,11 @@ pub async fn sign_in(
     // Attempt CD login
     let (cd_auth_data, user_basic_info) = match cdlogin_get_jcookie_and_meta(login_data).await {
         Ok((cd_auth_data, user_basic_info)) => (cd_auth_data, user_basic_info),
-        Err(_) => {
+        Err(e) => {
+            if e.root_cause().downcast_ref::<openssl::error::ErrorStack>().is_some() {
+                return Err(StatusCode::IM_A_TEAPOT)
+            }
+            
             return Err(StatusCode::UNAUTHORIZED); // CD login failed
         }
     };
