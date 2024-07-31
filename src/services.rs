@@ -262,7 +262,7 @@ pub async fn get_stundenplan(
         item.start *= 1000;
         item.end *= 1000;
         item.color = match item.color.as_str() {
-            "dunkelrot" => "#8B0000".to_string(),
+            "darkred" => "#D41610".to_string(),
             _ => string_to_rgb(&format!("0{}0", item.title)),
         }
     }
