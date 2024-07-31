@@ -306,3 +306,31 @@ pub async fn get_reminders(
 
     Ok(Json(resp))
 }
+
+pub async fn get_documentlist(
+    Extension(_cd_authdata): Extension<CdAuthData>,
+) -> Result<String, ResponseError> {
+    // let client = get_client_with_cd_cookie(cd_authdata.cookie)?;
+    let client = reqwest::Client::new();
+
+    let resp = client
+        // .post(format!(
+        //     "https://erp.campus-dual.de/sap/bc/webdynpro/sap/zba_printss?sap-contextid=SID%3aANON%3aerp_ERP_00%3aMad3d1Rx8YoyVtieTPvyQUXZFDCKz9uEZchcdVM5-NEW"
+        // ))
+        .get("https://erp.campus-dual.de/sap/bc/webdynpro/sap/zba_printss?sap-language=DE&sap-wd-configId=ZBA_AC_SOAP_PSS")
+        .send()
+        .await?
+        .error_for_status()?
+        .text()
+        .await?;
+
+    println!("{}", resp);
+
+    // std::fs::write("soap_pss.html", &resp).unwrap();
+
+    // Ok(resp)
+    Err(ResponseError {
+        message: "Not implemented".to_string(),
+        status_code: http::StatusCode::INTERNAL_SERVER_ERROR,
+    })
+}
