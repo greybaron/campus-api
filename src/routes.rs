@@ -1,11 +1,13 @@
+use std::env;
+
 use axum::{
     middleware,
     response::IntoResponse,
     routing::{get, post},
     Router,
 };
-use http::{header::CONTENT_TYPE, Method};
-use tower_http::cors::{Any, CorsLayer};
+use http::{header::CONTENT_TYPE, HeaderValue, Method};
+use tower_http::cors::CorsLayer;
 
 use crate::{auth, services};
 
@@ -14,7 +16,12 @@ pub async fn app() -> Router {
         // allow `GET` and `POST` when accessing the resource
         .allow_methods([Method::GET, Method::POST])
         // allow requests from any origin
-        .allow_origin(Any)
+        .allow_origin(
+            env::var("ALLOW_ORIGIN")
+                .expect("ALLOW_ORIGIN environment variable not set")
+                .parse::<HeaderValue>()
+                .unwrap(),
+        )
         .allow_headers([CONTENT_TYPE]);
 
     Router::new()
