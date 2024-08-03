@@ -134,6 +134,7 @@ pub struct StundenplanItem {
     #[serde(rename = "allDay")]
     all_day: bool,
     pub color: String,
+    pub white_font_recommended: Option<bool>,
     description: String,
     editable: bool,
     pub end: i64,

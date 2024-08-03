@@ -4,6 +4,7 @@ use tokio::net::TcpListener;
 
 mod auth;
 pub mod campus_backend;
+mod color_stuff;
 mod constants;
 mod encryption;
 mod routes;
@@ -23,7 +24,7 @@ async fn main() {
 
     let listener = TcpListener::bind("0.0.0.0:8080")
         .await
-        .expect("Unable to connect to the server");
+        .expect("Unable to start the server");
 
     println!("Listening on {}", listener.local_addr().unwrap());
 

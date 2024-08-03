@@ -12,6 +12,7 @@ use crate::{
         extract_exam_signup_options, extract_exam_verfahren_options, extract_grades,
         get_client_with_cd_cookie,
     },
+    color_stuff::hex_to_luminance,
     types::{
         CampusDualGrade, CampusDualSignupOption, CampusDualVerfahrenOption, CampusLoginData,
         CampusReminders, CdAuthData, CdExamStats, ExamRegistrationMetadata, LoginResponse,
@@ -264,7 +265,8 @@ pub async fn get_stundenplan(
         item.color = match item.color.as_str() {
             "darkred" => "#D41610".to_string(),
             _ => string_to_rgb(&format!("0{}0", item.title)),
-        }
+        };
+        item.white_font_recommended = Some(hex_to_luminance(&item.color) < 128.0)
     }
 
     Ok(Json(stundenplan))
