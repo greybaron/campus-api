@@ -266,7 +266,14 @@ pub async fn get_stundenplan(
             "darkred" => "#D41610".to_string(),
             _ => string_to_rgb(&format!("0{}0", item.title)),
         };
-        item.white_font_recommended = Some(hex_to_luminance(&item.color) < 128.0)
+        item.font_color = Some(
+            if hex_to_luminance(&item.color) < 128.0 {
+                "#FFFFFF"
+            } else {
+                "#000000"
+            }
+            .to_string(),
+        );
     }
 
     Ok(Json(stundenplan))
