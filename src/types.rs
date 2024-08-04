@@ -222,17 +222,17 @@ pub struct CampusReminders {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CampusTimeline {
-    #[serde(rename = "wiki-url")]
-    pub wiki_url: String,
-    #[serde(rename = "wiki-section")]
-    pub wiki_section: String,
-    pub date_time_format: String,
-    pub events: Vec<TimelineEvent>,
+    // #[serde(rename = "wiki-url")]
+    // pub wiki_url: String,
+    // #[serde(rename = "wiki-section")]
+    // pub wiki_section: String,
+    // pub date_time_format: String,
+    pub events: Vec<CampusTimelineEvent>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct TimelineEvent {
+pub struct CampusTimelineEvent {
     pub start: String,
     pub end: String,
     pub duration_event: Option<bool>,
@@ -242,4 +242,21 @@ pub struct TimelineEvent {
     pub description: String,
     pub track_num: Option<i64>,
     pub duration: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ExportTimelineEvents {
+    pub fachsemester: Vec<ExportTimelineEvent>,
+    pub theoriesemester: Vec<ExportTimelineEvent>,
+    pub praxissemester: Vec<ExportTimelineEvent>,
+    pub specials: Vec<ExportTimelineEvent>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ExportTimelineEvent {
+    pub name: String,
+    pub description: String,
+    pub color: String,
+    pub start: String,
+    pub end: String,
 }

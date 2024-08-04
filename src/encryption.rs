@@ -45,18 +45,6 @@ pub fn decrypt(nonce: &str, ciphertext: &str) -> Result<String> {
     Ok(String::from_utf8(plaintext)?)
 }
 
-// pub fn ctest() {
-//     // let key = "ö example very very secret key."; // Ensure the key is 32 bytes for AES-256
-//     let plaintext = "Hello, world!";
-
-//     let (nonce, ciphertext) = encrypt(plaintext);
-//     // println!("Nonce: {}", nonce);
-//     // println!("Ciphertext: {}", ciphertext);
-
-//     let decrypted_plaintext = decrypt(&nonce, &ciphertext);
-//     println!("Decrypted: {}", decrypted_plaintext);
-// }
-
 pub fn get_aes_from_env() -> [u8; 32] {
     let key = env::var("AES_KEY").expect("AES_KEY environment variable not set");
 

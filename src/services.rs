@@ -1,4 +1,5 @@
 use axum::{Extension, Json};
+use chrono::DateTime;
 use fnv::FnvHasher;
 use http::StatusCode;
 use std::{
@@ -15,8 +16,9 @@ use crate::{
     color_stuff::hex_to_luminance,
     types::{
         CampusDualGrade, CampusDualSignupOption, CampusDualVerfahrenOption, CampusLoginData,
-        CampusReminders, CampusTimeline, CdAuthData, CdExamStats, ExamRegistrationMetadata,
-        LoginResponse, ResponseError, StundenplanItem, TimelineEvent,
+        CampusReminders, CampusTimeline, CampusTimelineEvent, CdAuthData, CdExamStats,
+        ExamRegistrationMetadata, ExportTimelineEvent, ExportTimelineEvents, LoginResponse,
+        ResponseError, StundenplanItem,
     },
 };
 
@@ -318,7 +320,7 @@ pub async fn get_reminders(
 
 pub async fn get_timeline(
     Extension(cd_authdata): Extension<CdAuthData>,
-) -> Result<Json<Vec<TimelineEvent>>, ResponseError> {
+) -> Result<Json<ExportTimelineEvents>, ResponseError> {
     let client = reqwest::Client::new();
     let resp: CampusTimeline = client
         .get(format!(
@@ -331,5 +333,40 @@ pub async fn get_timeline(
         .json()
         .await?;
 
-    Ok(Json(resp.events))
+    let events = resp.events;
+
+    let fachsemester: Vec<ExportTimelineEvent> = events_by_color("#fcbe04", &events);
+    let theoriesemester: Vec<ExportTimelineEvent> = events_by_color("#0070a3", &events);
+    let praxissemester: Vec<ExportTimelineEvent> = events_by_color("#119911", &events);
+    let specials: Vec<ExportTimelineEvent> = events_by_color("#880000", &events);
+
+    let export_events = ExportTimelineEvents {
+        fachsemester,
+        theoriesemester,
+        praxissemester,
+        specials,
+    };
+
+    Ok(Json(export_events))
+}
+
+fn events_by_color(color: &str, events: &[CampusTimelineEvent]) -> Vec<ExportTimelineEvent> {
+    events
+        .iter()
+        .filter(|event| event.color == color)
+        .map(|event| ExportTimelineEvent {
+            name: event.title.clone(),
+            description: event.description.replace("<br>", " "),
+            color: event.color.clone(),
+            start: campusdate_to_iso8601(&event.start),
+            end: campusdate_to_iso8601(&event.end),
+        })
+        .collect()
+}
+
+fn campusdate_to_iso8601(input: &str) -> String {
+    let format = "%a, %d %b %Y %H:%M:%S %z";
+
+    let date_time = DateTime::parse_from_str(input, format).expect("Failed to parse date");
+    date_time.to_rfc3339()
 }
