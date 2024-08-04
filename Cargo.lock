@@ -241,6 +241,7 @@ dependencies = [
  "chrono",
  "cookie_store",
  "fnv",
+ "htmlentity",
  "http",
  "jsonwebtoken",
  "lazy_static",
@@ -640,6 +641,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "htmlentity"
+version = "1.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd54ae4f69adcc1a43637dcff230852832c3ad50df31a90e0cb5f001dd441359"
+dependencies = [
+ "anyhow",
+ "lazy_static",
+ "thiserror",
 ]
 
 [[package]]

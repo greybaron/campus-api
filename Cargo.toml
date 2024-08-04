@@ -26,6 +26,7 @@ aes-gcm = "0.10.3"
 base64 = "0.22.1"
 rand = "0.8.5"
 openssl = "0.10.66"
+htmlentity = "1.3.2"
 
 [profile.release]
 strip = true

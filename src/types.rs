@@ -243,3 +243,9 @@ pub struct TimelineEvent {
     pub track_num: Option<i64>,
     pub duration: Option<bool>,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DocumentOption {
+    pub name: String,
+    pub id: String,
+}

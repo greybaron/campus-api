@@ -1,6 +1,8 @@
+use anyhow::Context;
 use axum::{Extension, Json};
 use fnv::FnvHasher;
 use http::StatusCode;
+use scraper::{node, Html, Selector};
 use std::{
     hash::{Hash, Hasher},
     time::Instant,
@@ -15,8 +17,8 @@ use crate::{
     color_stuff::hex_to_luminance,
     types::{
         CampusDualGrade, CampusDualSignupOption, CampusDualVerfahrenOption, CampusLoginData,
-        CampusReminders, CampusTimeline, CdAuthData, CdExamStats, ExamRegistrationMetadata,
-        LoginResponse, ResponseError, StundenplanItem, TimelineEvent,
+        CampusReminders, CampusTimeline, CdAuthData, CdExamStats, DocumentOption,
+        ExamRegistrationMetadata, LoginResponse, ResponseError, StundenplanItem, TimelineEvent,
     },
 };
 
@@ -332,4 +334,107 @@ pub async fn get_timeline(
         .await?;
 
     Ok(Json(resp.events))
+}
+
+pub async fn get_documentlist(
+    Extension(cd_auth_data): Extension<CdAuthData>,
+) -> Result<Json<Vec<DocumentOption>>, ResponseError> {
+    let client = get_client_with_cd_cookie(cd_auth_data.cookie)?;
+
+    let stage1 = client
+        .get("https://erp.campus-dual.de/sap/bc/webdynpro/sap/zba_printss?sap-language=DE&sap-wd-configId=ZBA_AC_SOAP_PSS")
+        .header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:128.0) Gecko/20100101 Firefox/128.0")
+        .send()
+        .await?
+        .error_for_status()?
+        .text().await?;
+    dbg!();
+    std::fs::write("stage1fucked.html", &stage1).unwrap();
+
+    let (action, secure_id) = {
+        let document = Html::parse_document(&stage1);
+        let form = document
+            .select(&Selector::parse(r#"form[name="sap.client.SsrClient.form"]"#).unwrap())
+            .next()
+            .unwrap();
+            // .context("Documents stage 1: form missing")?;
+        let action = form
+            .value()
+            .attr("action")
+            .context("Documents stage 1: form-action missing")?
+            .to_string();
+        let input_wdsecid = form
+            .select(&Selector::parse("input#sap-wd-secure-id").unwrap())
+            .next()
+            .unwrap();
+            // .context("sap-wd-secure-id not found")?;
+        let secure_id = input_wdsecid.value().attr("value").unwrap().to_string();
+
+        (action, secure_id)
+    };
+
+    dbg!(&action, secure_id);
+
+    let stage2 = client
+        .post(format!("https://erp.campus-dual.de{action}"))
+        .header(
+            "User-Agent",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:128.0) Gecko/20100101 Firefox/128.0",
+        )
+        .send()
+        .await?;
+        // .text()
+        // .await?;
+
+    println!("{:#?}", stage2.headers());
+    let stage2= stage2.text().await?;
+
+    let options: Vec<DocumentOption> = {
+        let document = Html::parse_document(&stage2);
+        dbg!();
+
+        document
+            .select(&Selector::parse(".lsLink__text").unwrap())
+            .map(|el| {
+                dbg!(el.attr("id"));
+
+                DocumentOption {
+                name: el.inner_html(),
+                id: el.value().attr("id").unwrap().replace("-text", "").to_string(),
+            }
+        })
+            .collect()
+    };
+
+    let action2 = {
+        let document = Html::parse_document(&stage2);
+        document
+            .select(&Selector::parse(r#"form[name="sap.client.SsrClient.form"]"#).unwrap())
+            .next()
+            .context("Documents stage 1: form missing")?
+            .value()
+            .attr("action")
+            .context("Documents stage 1: form-action missing")?
+            .to_string()
+    };
+
+    dbg!(&action2);
+
+    let stage3 = client
+        .post(format!("https://erp.campus-dual.de{action2}"))
+        .header(
+            "User-Agent",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:128.0) Gecko/20100101 Firefox/128.0",
+        )
+        .header("Prority", "u=0")
+        .header("SAP-Perf-FESRec", "F0D23546D21241D59ADAD85168CB1617,C031904A47BDB0ECE96C15F228000000,2,2396,3149,2,START_0,102,2396,mac_10.15,SAP_WDA")
+        .header("SAP-Perf-FESRec-opt", "ZBA_PRINTSS,START,,ff_128,0,0,,,751,,,,,,,,2,,20240804205241102,ZBA_PRINTSS")
+        .send()
+        .await?;
+
+    dbg!(stage3.status(), stage3.text().await?);
+
+   
+
+    Ok(Json(options))
 }
