@@ -218,3 +218,28 @@ pub struct CampusReminders {
     #[serde(rename(deserialize = "UPCOMING"))]
     upcoming: Vec<UpcomingReminder>,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CampusTimeline {
+    #[serde(rename = "wiki-url")]
+    pub wiki_url: String,
+    #[serde(rename = "wiki-section")]
+    pub wiki_section: String,
+    pub date_time_format: String,
+    pub events: Vec<TimelineEvent>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TimelineEvent {
+    pub start: String,
+    pub end: String,
+    pub duration_event: Option<bool>,
+    pub color: String,
+    pub title: String,
+    pub caption: String,
+    pub description: String,
+    pub track_num: Option<i64>,
+    pub duration: Option<bool>,
+}

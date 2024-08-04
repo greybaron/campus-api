@@ -64,5 +64,9 @@ pub async fn app() -> Router {
             "/get_reminders",
             get(services::get_reminders).layer(middleware::from_fn(auth::authorize)),
         )
+        .route(
+            "/get_timeline",
+            get(services::get_timeline).layer(middleware::from_fn(auth::authorize)),
+        )
         .layer(cors)
 }

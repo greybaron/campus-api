@@ -15,8 +15,8 @@ use crate::{
     color_stuff::hex_to_luminance,
     types::{
         CampusDualGrade, CampusDualSignupOption, CampusDualVerfahrenOption, CampusLoginData,
-        CampusReminders, CdAuthData, CdExamStats, ExamRegistrationMetadata, LoginResponse,
-        ResponseError, StundenplanItem,
+        CampusReminders, CampusTimeline, CdAuthData, CdExamStats, ExamRegistrationMetadata,
+        LoginResponse, ResponseError, StundenplanItem, TimelineEvent,
     },
 };
 
@@ -314,4 +314,22 @@ pub async fn get_reminders(
         .await?;
 
     Ok(Json(resp))
+}
+
+pub async fn get_timeline(
+    Extension(cd_authdata): Extension<CdAuthData>,
+) -> Result<Json<Vec<TimelineEvent>>, ResponseError> {
+    let client = reqwest::Client::new();
+    let resp: CampusTimeline = client
+        .get(format!(
+            "https://selfservice.campus-dual.de/dash/gettimeline?user={}",
+            cd_authdata.user
+        ))
+        .send()
+        .await?
+        .error_for_status()?
+        .json()
+        .await?;
+
+    Ok(Json(resp.events))
 }
