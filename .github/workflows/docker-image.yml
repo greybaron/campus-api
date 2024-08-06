@@ -26,4 +26,4 @@ jobs:
         context: .
         platforms: linux/amd64,linux/arm64
         push: true
-        tags: flschmidt/campusdebloat-api-campus:latest
+        tags: flschmidt/campusunbloat-api-campus:latest
