@@ -11,7 +11,7 @@ use crate::{
     auth::sign_in,
     campus_backend::req_client_funcs::{
         extract_exam_signup_options, extract_exam_verfahren_options, extract_grades,
-        get_client_with_cd_cookie,
+        get_client_default, get_client_with_cd_cookie,
     },
     color_stuff::hex_to_luminance,
     types::{
@@ -109,7 +109,7 @@ pub async fn post_registerexam(
     Extension(cd_auth_data): Extension<CdAuthData>,
     Json(examregist_meta): Json<ExamRegistrationMetadata>,
 ) -> Result<String, ResponseError> {
-    let client = reqwest::Client::new();
+    let client = get_client_default();
     let exam_regist_resp = client
         .get(format!(
             "https://selfservice.campus-dual.de/acwork/registerexam?userid={}&assessment={}&peryr={}&perid={}&offerno={}&hash={}",
@@ -133,7 +133,7 @@ pub async fn post_cancelexam(
     Extension(cd_auth_data): Extension<CdAuthData>,
     Json(examregist_meta): Json<ExamRegistrationMetadata>,
 ) -> Result<String, ResponseError> {
-    let client = reqwest::Client::new();
+    let client = get_client_default();
     let exam_regist_resp = client
         .get(format!(
             "https://selfservice.campus-dual.de/acwork/cancelexam?userid={}&objid={}&hash={}",
@@ -168,7 +168,7 @@ pub async fn get_examverfahren(
 pub async fn get_ects(
     Extension(cd_authdata): Extension<CdAuthData>,
 ) -> Result<String, ResponseError> {
-    let client = reqwest::Client::new();
+    let client = get_client_default();
 
     let user = cd_authdata.user;
     let hash = cd_authdata.hash;
@@ -190,7 +190,7 @@ pub async fn get_ects(
 pub async fn get_fachsem(
     Extension(cd_authdata): Extension<CdAuthData>,
 ) -> Result<String, ResponseError> {
-    let client = reqwest::Client::new();
+    let client = get_client_default();
 
     let user = cd_authdata.user;
     let hash = cd_authdata.hash;
@@ -225,7 +225,7 @@ pub async fn get_examstats(
     // daten/partitionen: ['erfolgreich', 0], ['nicht bestanden', 0], ['gebucht', 0]
     // farben: ["#0070a3", "#4297d7", "#fcbe04"]
 
-    let client = reqwest::Client::new();
+    let client = get_client_default();
 
     let user = cd_authdata.user;
     let hash = cd_authdata.hash;
@@ -246,7 +246,7 @@ pub async fn get_examstats(
 pub async fn get_stundenplan(
     Extension(cd_authdata): Extension<CdAuthData>,
 ) -> Result<Json<Vec<StundenplanItem>>, ResponseError> {
-    let client = reqwest::Client::new();
+    let client = get_client_default();
 
     let user = cd_authdata.user;
     let hash = cd_authdata.hash;
@@ -300,7 +300,7 @@ fn string_to_rgb(input: &str) -> String {
 pub async fn get_reminders(
     Extension(cd_authdata): Extension<CdAuthData>,
 ) -> Result<Json<CampusReminders>, ResponseError> {
-    let client = reqwest::Client::new();
+    let client = get_client_default();
 
     let user = cd_authdata.user;
     let hash = cd_authdata.hash;
@@ -321,7 +321,7 @@ pub async fn get_reminders(
 pub async fn get_timeline(
     Extension(cd_authdata): Extension<CdAuthData>,
 ) -> Result<Json<ExportTimelineEvents>, ResponseError> {
-    let client = reqwest::Client::new();
+    let client = get_client_default();
     let resp: CampusTimeline = client
         .get(format!(
             "https://selfservice.campus-dual.de/dash/gettimeline?user={}",

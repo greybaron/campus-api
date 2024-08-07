@@ -1,4 +1,4 @@
-use constants::{AES_KEY, JWT_DEC_KEY, JWT_ENC_KEY};
+use constants::{AES_KEY, CD_CERT_PEM, JWT_DEC_KEY, JWT_ENC_KEY};
 use encryption::{get_aes_from_env, get_jwt_keys_from_env};
 use tokio::net::TcpListener;
 
@@ -21,6 +21,10 @@ async fn main() {
     JWT_DEC_KEY
         .set(jwt_dec_key)
         .unwrap_or_else(|_| panic!("Unable to set JWT dec key"));
+
+    let buf = include_bytes!("GEANT_OV_RSA_CA_4_tcs-cert3.pem");
+    let cert = reqwest::Certificate::from_pem(buf).unwrap();
+    CD_CERT_PEM.set(cert).unwrap();
 
     let listener = TcpListener::bind("0.0.0.0:8080")
         .await

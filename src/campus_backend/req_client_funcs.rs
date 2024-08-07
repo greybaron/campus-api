@@ -8,10 +8,21 @@ use reqwest::Url;
 use reqwest_cookie_store::CookieStoreMutex;
 use scraper::{selectable::Selectable, Html, Selector};
 
-use crate::types::{
-    CampusDualGrade, CampusDualSignupOption, CampusDualSubGrade, CampusDualVerfahrenOption,
-    ExamRegistrationMetadata,
+use crate::{
+    constants::CD_CERT_PEM,
+    types::{
+        CampusDualGrade, CampusDualSignupOption, CampusDualSubGrade, CampusDualVerfahrenOption,
+        ExamRegistrationMetadata,
+    },
 };
+
+pub fn get_client_default() -> reqwest::Client {
+    reqwest::ClientBuilder::new()
+        .add_root_certificate(CD_CERT_PEM.get().unwrap().clone())
+        .use_rustls_tls()
+        .build()
+        .unwrap()
+}
 
 pub fn get_client_with_cd_cookie(j_cookie: String) -> Result<reqwest::Client> {
     let cookie: cookie_store::Cookie = serde_json::from_str(&j_cookie)?;
@@ -22,6 +33,7 @@ pub fn get_client_with_cd_cookie(j_cookie: String) -> Result<reqwest::Client> {
     }
 
     Ok(reqwest::Client::builder()
+        .add_root_certificate(CD_CERT_PEM.get().unwrap().clone())
         .cookie_provider(cookie_store)
         .build()?)
 }

@@ -7,7 +7,10 @@ use reqwest::Client;
 use reqwest_cookie_store::{CookieStore, CookieStoreMutex};
 use scraper::{Html, Selector};
 
-use crate::types::{CampusLoginData, CdAuthData, UserBasicInfo};
+use crate::{
+    constants::CD_CERT_PEM,
+    types::{CampusLoginData, CdAuthData, UserBasicInfo},
+};
 
 pub async fn cdlogin_get_jcookie_and_meta(
     login_data: CampusLoginData,
@@ -15,6 +18,7 @@ pub async fn cdlogin_get_jcookie_and_meta(
     let cookie_store = Arc::new(CookieStoreMutex::new(CookieStore::new(None)));
 
     let client = reqwest::Client::builder()
+        .add_root_certificate(CD_CERT_PEM.get().unwrap().clone())
         .cookie_provider(cookie_store.clone())
         .build()?;
 
