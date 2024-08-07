@@ -356,7 +356,11 @@ fn events_by_color(color: &str, events: &[CampusTimelineEvent]) -> Vec<ExportTim
         .filter(|event| event.color == color)
         .map(|event| ExportTimelineEvent {
             name: event.title.clone(),
-            description: event.description.replace("<br>", " "),
+            description: event
+                .description
+                .replace("<br>", " ")
+                .replace("<strong>", "")
+                .replace("</strong>", ""),
             color: event.color.clone(),
             start: campusdate_to_iso8601(&event.start),
             end: campusdate_to_iso8601(&event.end),
