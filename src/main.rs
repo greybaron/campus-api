@@ -29,14 +29,14 @@ async fn main() {
     RATELIMIT_QUOTA
         .set(
             env::var("RATELIMIT_QUOTA")
-                .and_then(|key| key.parse::<i64>().map_err(|_| env::VarError::NotPresent))
+                .and_then(|key| key.parse().map_err(|_| env::VarError::NotPresent))
                 .unwrap_or(50),
         )
         .unwrap();
     RATELIMIT_RESTORE_INTERVAL_SEC
         .set(
             env::var("RATELIMIT_RESTORE_INTERVAL_SEC")
-                .and_then(|key| key.parse::<i64>().map_err(|_| env::VarError::NotPresent))
+                .and_then(|key| key.parse().map_err(|_| env::VarError::NotPresent))
                 .unwrap_or(2),
         )
         .unwrap();

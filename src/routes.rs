@@ -10,7 +10,12 @@ use http::{header::CONTENT_TYPE, Method};
 use tower_governor::{governor::GovernorConfigBuilder, GovernorLayer};
 use tower_http::cors::{Any, CorsLayer};
 
-use crate::{auth, ratelimit_keyextractor::GovJwtExtractorHashed, services};
+use crate::{
+    auth,
+    constants::{RATELIMIT_QUOTA, RATELIMIT_RESTORE_INTERVAL_SEC},
+    ratelimit_keyextractor::GovJwtExtractorHashed,
+    services,
+};
 
 pub async fn app() -> Router {
     // Bucket rate limiting:
@@ -19,8 +24,8 @@ pub async fn app() -> Router {
     // Increase budget by 1 every second
     let governor_conf_jwt = Arc::new(
         GovernorConfigBuilder::default()
-            .burst_size(1)
-            .per_second(2)
+            .burst_size(*RATELIMIT_QUOTA.get().unwrap())
+            .per_second(*RATELIMIT_RESTORE_INTERVAL_SEC.get().unwrap())
             .key_extractor(GovJwtExtractorHashed)
             .finish()
             .unwrap(),
