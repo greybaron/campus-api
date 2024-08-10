@@ -18,7 +18,7 @@ impl KeyExtractor for GovJwtExtractorHashed {
             .and_then(|token| token.strip_prefix("Bearer "))
             .map(|token| token.to_string())
             .ok_or(GovernorError::Other {
-                code: StatusCode::INTERNAL_SERVER_ERROR,
+                code: StatusCode::TOO_MANY_REQUESTS,
                 msg: Some("".to_string()),
                 headers: None,
             })
