@@ -322,13 +322,14 @@ pub async fn extract_exam_verfahren_options(
         }
 
         let signup_information_messy = main_subline_texts.next().unwrap().trim_start();
-        let signup_information =
-            if let Some(stripped) = signup_information_messy.strip_suffix(", Prüfungstermin: ") {
-                stripped
-            } else {
-                signup_information_messy
-            }
-            .to_string();
+        let signup_information = if let Some(stripped) = signup_information_messy
+            .split_once("Prüfungstermin")
+            .map(|split| split.0.replace(", ", ""))
+        {
+            stripped
+        } else {
+            signup_information_messy.to_string()
+        };
 
         let exam_date = main_subline_texts.next().map(|el| el.to_string());
         let exam_time = main_subline_texts.nth(1).map(|el| el.to_string());
