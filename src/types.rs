@@ -280,6 +280,7 @@ pub struct CdExamDetails {
     pub ev_examendtime: String,
     #[serde(rename(deserialize = "EV_EXAMORG_TEXT"))]
     pub ev_examorg_text: String,
+    pub ev_examorg_longtext: Option<String>,
     #[serde(rename(deserialize = "EV_INSTRUCTOR"))]
     pub ev_instructor: String,
     #[serde(rename(deserialize = "EV_LOCATION_SHORT"))]

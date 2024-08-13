@@ -132,7 +132,7 @@ pub async fn get_examdetails(
     Json(examregist_meta): Json<ExamRegistrationMetadata>,
 ) -> Result<Json<CdExamDetails>, ResponseError> {
     let client = get_client_default();
-    let exam_details: CdExamDetails = client
+    let mut exam_details: CdExamDetails = client
         .get(format!(
             "https://selfservice.campus-dual.de/acwork/offerdetail?user={}&objidexm=undefined&evob_objid={}&peryr={}&perid={}&offerno={}",
             cd_auth_data.user,
@@ -147,6 +147,22 @@ pub async fn get_examdetails(
         .json()
         .await?;
 
+    let examorg_long = {
+        let resp = client
+            .get(format!(
+                "https://selfservice.campus-dual.de/acwork/examorg?examorg={}",
+                exam_details.ev_examorg_text
+            ))
+            .send()
+            .await?
+            .error_for_status();
+        match resp {
+            Ok(resp) => resp.text().await?.replace('"', ""),
+            Err(_) => exam_details.ev_examorg_text.clone(),
+        }
+    };
+
+    exam_details.ev_examorg_longtext = Some(examorg_long);
     Ok(Json(exam_details))
 }
 
