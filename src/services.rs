@@ -16,9 +16,9 @@ use crate::{
     color_stuff::hex_to_luminance,
     types::{
         CampusDualGrade, CampusDualSignupOption, CampusDualVerfahrenOption, CampusLoginData,
-        CampusReminders, CampusTimeline, CampusTimelineEvent, CdAuthData, CdExamStats,
-        ExamRegistrationMetadata, ExportTimelineEvent, ExportTimelineEvents, LoginResponse,
-        ResponseError, StundenplanItem,
+        CampusReminders, CampusTimeline, CampusTimelineEvent, CdAuthData, CdExamDetails,
+        CdExamStats, ExamRegistrationMetadata, ExportTimelineEvent, ExportTimelineEvents,
+        LoginResponse, ResponseError, StundenplanItem,
     },
 };
 
@@ -124,9 +124,30 @@ pub async fn post_registerexam(
         .await?
         .error_for_status()?;
 
-    dbg!(exam_regist_resp.status());
-
     Ok(exam_regist_resp.text().await?)
+}
+
+pub async fn get_examdetails(
+    Extension(cd_auth_data): Extension<CdAuthData>,
+    Json(examregist_meta): Json<ExamRegistrationMetadata>,
+) -> Result<Json<CdExamDetails>, ResponseError> {
+    let client = get_client_default();
+    let exam_details: CdExamDetails = client
+        .get(format!(
+            "https://selfservice.campus-dual.de/acwork/offerdetail?user={}&objidexm=undefined&evob_objid={}&peryr={}&perid={}&offerno={}",
+            cd_auth_data.user,
+            examregist_meta.assessment,
+            examregist_meta.peryr,
+            examregist_meta.perid,
+            examregist_meta.offerno,
+        ))
+        .send()
+        .await?
+        .error_for_status()?
+        .json()
+        .await?;
+
+    Ok(Json(exam_details))
 }
 
 pub async fn post_cancelexam(
@@ -142,8 +163,6 @@ pub async fn post_cancelexam(
         .send()
         .await?
         .error_for_status()?;
-
-    dbg!(exam_regist_resp.status());
 
     Ok(exam_regist_resp.text().await?)
 }

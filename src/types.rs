@@ -222,11 +222,6 @@ pub struct CampusReminders {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CampusTimeline {
-    // #[serde(rename = "wiki-url")]
-    // pub wiki_url: String,
-    // #[serde(rename = "wiki-section")]
-    // pub wiki_section: String,
-    // pub date_time_format: String,
     pub events: Vec<CampusTimelineEvent>,
 }
 
@@ -259,4 +254,56 @@ pub struct ExportTimelineEvent {
     pub color: String,
     pub start: String,
     pub end: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CdExamDetails {
+    #[serde(rename(deserialize = "EV_AGRTYPE_TEXT"))]
+    pub ev_agrtype_text: String,
+    #[serde(rename(deserialize = "EV_AUDTYPE_TEXT"))]
+    pub ev_audtype_text: String,
+    #[serde(rename(deserialize = "EV_CONTINUE_INDICATOR"))]
+    pub ev_continue_indicator: String,
+    #[serde(rename(deserialize = "EV_DEREG_END"))]
+    pub ev_dereg_end: String,
+    #[serde(rename(deserialize = "EV_DEREG_ENDTIME"))]
+    pub ev_dereg_endtime: String,
+    #[serde(rename(deserialize = "EV_DURATION"))]
+    pub ev_duration: String,
+    #[serde(rename(deserialize = "EV_DURUNIT"))]
+    pub ev_durunit: String,
+    #[serde(rename(deserialize = "EV_EXAMBEGTIME"))]
+    pub ev_exambegtime: String,
+    #[serde(rename(deserialize = "EV_EXAMDATE"))]
+    pub ev_examdate: String,
+    #[serde(rename(deserialize = "EV_EXAMENDTIME"))]
+    pub ev_examendtime: String,
+    #[serde(rename(deserialize = "EV_EXAMORG_TEXT"))]
+    pub ev_examorg_text: String,
+    #[serde(rename(deserialize = "EV_INSTRUCTOR"))]
+    pub ev_instructor: String,
+    #[serde(rename(deserialize = "EV_LOCATION_SHORT"))]
+    pub ev_location_short: String,
+    #[serde(rename(deserialize = "EV_LOCATION_STEXT"))]
+    pub ev_location_stext: String,
+    #[serde(rename(deserialize = "EV_OBTYPE_TEXT"))]
+    pub ev_obtype_text: String,
+    #[serde(rename(deserialize = "EV_REASON"))]
+    pub ev_reason: String,
+    #[serde(rename(deserialize = "EV_REGIS_BEGIN"))]
+    pub ev_regis_begin: String,
+    #[serde(rename(deserialize = "EV_REGIS_BEGTIME"))]
+    pub ev_regis_begtime: String,
+    #[serde(rename(deserialize = "EV_REGIS_END"))]
+    pub ev_regis_end: String,
+    #[serde(rename(deserialize = "EV_REGIS_ENDTIME"))]
+    pub ev_regis_endtime: String,
+    #[serde(rename(deserialize = "EV_ROOM_SHORT"))]
+    pub ev_room_short: String,
+    #[serde(rename(deserialize = "EV_ROOM_STEXT"))]
+    pub ev_room_stext: String,
+    #[serde(rename(deserialize = "EV_SHORT"))]
+    pub ev_short: String,
+    #[serde(rename(deserialize = "EV_STEXT"))]
+    pub ev_stext: String,
 }

@@ -63,6 +63,7 @@ pub async fn app() -> Router {
         .route("/get_grades", get(services::get_grades))
         .route("/get_examsignup", get(services::get_examsignup))
         .route("/registerexam", post(services::post_registerexam))
+        .route("/get_examdetails", get(services::get_examdetails))
         .route("/cancelexam", post(services::post_cancelexam))
         .route("/get_examverfahren", get(services::get_examverfahren))
         .route("/get_ects", get(services::get_ects))
