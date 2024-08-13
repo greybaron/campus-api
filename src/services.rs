@@ -157,7 +157,7 @@ pub async fn get_examdetails(
             .await?
             .error_for_status();
         match resp {
-            Ok(resp) => resp.text().await?.replace('"', ""),
+            Ok(resp) => serde_json::from_str(&resp.text().await?)?,
             Err(_) => exam_details.ev_examorg_text.clone(),
         }
     };
