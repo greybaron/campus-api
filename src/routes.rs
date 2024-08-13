@@ -13,6 +13,6 @@ pub async fn app() -> Router {
         .allow_headers([CONTENT_TYPE]);
 
     Router::new()
-        .route("/", get(services::check_revive_session))
+        .route("/", get(services::print_headers))
         .layer(cors)
 }
