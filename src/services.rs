@@ -75,7 +75,7 @@ pub async fn check_revive_session(
             match new_login_response {
                 Ok(Json(login_response)) => Ok(Json(Some(login_response))),
                 Err(_) => Err(ResponseError {
-                    message: "CD healthcheck failed".to_string(),
+                    message: "Failed to log in to CaDu - did the password change?".to_string(),
                     status_code: StatusCode::UNAUTHORIZED,
                 }),
             }
