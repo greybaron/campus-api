@@ -231,11 +231,11 @@ pub async fn get_examstats(
     let resp = CdExamStats {
         total: 100,
         successful: 69,
-        unsuccessful: 0,
+        unsuccessful: 31,
         unassessed: 0,
         booked: 0,
         finished: 0,
-        ronmodus: 31,
+        ronmodus: 0,
     };
 
     Ok(Json(resp))
@@ -262,7 +262,7 @@ pub async fn get_stundenplan(
             editable: false,
             end: ninethirty,
             instructor: "Dozent".to_string(),
-            remarks: "dashier".to_string(),
+            remarks: "remarks".to_string(),
             room: "103 Seminarraum".to_string(),
             sinstructor: "DZNT".to_string(),
             sroom: "103 SR".to_string(),
