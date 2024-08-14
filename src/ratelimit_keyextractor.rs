@@ -34,7 +34,6 @@ impl KeyExtractor for GovIpOrGlobalExtractorHashed {
     type Key = Option<IpAddr>;
 
     fn extract<B>(&self, req: &Request<B>) -> Result<Self::Key, GovernorError> {
-        dbg!();
         if let Ok(ip) = SmartIpKeyExtractor.extract(req) {
             Ok(Some(ip))
         } else {
