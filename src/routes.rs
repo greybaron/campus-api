@@ -7,12 +7,17 @@ use axum::{
     Router,
 };
 use http::{header::CONTENT_TYPE, Method};
-use tower_governor::{governor::GovernorConfigBuilder, GovernorLayer};
+use tower_governor::{
+    governor::GovernorConfigBuilder, key_extractor::SmartIpKeyExtractor, GovernorLayer,
+};
 use tower_http::cors::{Any, CorsLayer};
 
 use crate::{
     auth,
-    constants::{RATELIMIT_QUOTA, RATELIMIT_RESTORE_INTERVAL_SEC},
+    constants::{
+        LOGIN_RATELIMIT_QUOTA, LOGIN_RATELIMIT_RESTORE_INTERVAL_SEC, RATELIMIT_QUOTA,
+        RATELIMIT_RESTORE_INTERVAL_SEC,
+    },
     ratelimit_keyextractor::GovJwtExtractorHashed,
     services,
 };
@@ -31,24 +36,24 @@ pub async fn app() -> Router {
             .unwrap(),
     );
 
-    // let governor_conf_signin = Arc::new(
-    //     GovernorConfigBuilder::default()
-    //         .burst_size(1)
-    //         .per_second(10)
-    //         .key_extractor(GovUnameExtractorHashed)
-    //         .finish()
-    //         .unwrap(),
-    // );
+    let governor_conf_signin = Arc::new(
+        GovernorConfigBuilder::default()
+            .burst_size(*LOGIN_RATELIMIT_QUOTA.get().unwrap())
+            .per_second(*LOGIN_RATELIMIT_RESTORE_INTERVAL_SEC.get().unwrap())
+            .key_extractor(SmartIpKeyExtractor)
+            .finish()
+            .unwrap(),
+    );
 
     let governor_limiter_jwt = governor_conf_jwt.limiter().clone();
-    // let governor_limiter_signin = governor_conf_signin.limiter().clone();
+    let governor_limiter_signin = governor_conf_signin.limiter().clone();
 
     // a separate background task to clean up
     let interval = Duration::from_secs(60);
     std::thread::spawn(move || loop {
         std::thread::sleep(interval);
         governor_limiter_jwt.retain_recent();
-        // governor_limiter_signin.retain_recent();
+        governor_limiter_signin.retain_recent();
     });
 
     let cors = CorsLayer::new()
@@ -78,7 +83,12 @@ pub async fn app() -> Router {
         })
         .layer(middleware::from_fn(auth::authorize))
         // sign in rate limiting (based on username, only stored as hash)
-        .route("/signin", post(auth::sign_in))
+        .route(
+            "/signin",
+            post(auth::sign_in).layer(GovernorLayer {
+                config: governor_conf_signin,
+            }),
+        )
         .route("/", get(|| async { "API is reachable".into_response() }))
         .layer(cors)
 }
