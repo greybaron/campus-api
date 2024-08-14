@@ -7,9 +7,7 @@ use axum::{
     Router,
 };
 use http::{header::CONTENT_TYPE, Method};
-use tower_governor::{
-    governor::GovernorConfigBuilder, key_extractor::SmartIpKeyExtractor, GovernorLayer,
-};
+use tower_governor::{governor::GovernorConfigBuilder, GovernorLayer};
 use tower_http::cors::{Any, CorsLayer};
 
 use crate::{
@@ -18,7 +16,7 @@ use crate::{
         LOGIN_RATELIMIT_QUOTA, LOGIN_RATELIMIT_RESTORE_INTERVAL_SEC, RATELIMIT_QUOTA,
         RATELIMIT_RESTORE_INTERVAL_SEC,
     },
-    ratelimit_keyextractor::GovJwtExtractorHashed,
+    ratelimit_keyextractor::{GovIpOrGlobalExtractorHashed, GovJwtExtractorHashed},
     services,
 };
 
@@ -40,7 +38,7 @@ pub async fn app() -> Router {
         GovernorConfigBuilder::default()
             .burst_size(*LOGIN_RATELIMIT_QUOTA.get().unwrap())
             .per_second(*LOGIN_RATELIMIT_RESTORE_INTERVAL_SEC.get().unwrap())
-            .key_extractor(SmartIpKeyExtractor)
+            .key_extractor(GovIpOrGlobalExtractorHashed)
             .finish()
             .unwrap(),
     );
