@@ -132,23 +132,23 @@ pub struct CdExamStats {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct StundenplanItem {
     #[serde(rename = "allDay")]
-    all_day: bool,
+    pub all_day: bool,
     pub color: String,
     pub font_color: Option<String>,
-    description: String,
-    editable: bool,
+    pub description: String,
+    pub editable: bool,
     pub end: i64,
-    instructor: String,
-    remarks: String,
-    room: String,
-    sinstructor: String,
-    sroom: String,
+    pub instructor: String,
+    pub remarks: String,
+    pub room: String,
+    pub sinstructor: String,
+    pub sroom: String,
     pub start: i64,
     pub title: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct LatestReminder {
+pub struct LatestReminder {
     #[serde(rename(deserialize = "ACAD_SESSION"))]
     acad_session: String,
     #[serde(rename(deserialize = "ACAD_YEAR"))]
@@ -178,7 +178,7 @@ struct LatestReminder {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct UpcomingReminder {
+pub struct UpcomingReminder {
     #[serde(rename(deserialize = "BEGUZ"))]
     beguz: String,
     #[serde(rename(deserialize = "COMMENT"))]
@@ -208,15 +208,15 @@ struct UpcomingReminder {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CampusReminders {
     #[serde(rename(deserialize = "ELECTIVES"))]
-    electives: i64,
+    pub electives: i64,
     #[serde(rename(deserialize = "EXAMS"))]
-    exams: i64,
+    pub exams: i64,
     #[serde(rename(deserialize = "LATEST"))]
-    latest: Vec<LatestReminder>,
+    pub latest: Vec<LatestReminder>,
     #[serde(rename(deserialize = "SEMESTER"))]
-    semester: i64,
+    pub semester: i64,
     #[serde(rename(deserialize = "UPCOMING"))]
-    upcoming: Vec<UpcomingReminder>,
+    pub upcoming: Vec<UpcomingReminder>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

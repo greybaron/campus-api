@@ -7,7 +7,6 @@ use constants::{
 use tokio::net::TcpListener;
 
 mod auth;
-pub mod campus_backend;
 mod color_stuff;
 mod constants;
 mod encryption;

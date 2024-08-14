@@ -1,300 +1,275 @@
 use axum::{Extension, Json};
-use chrono::DateTime;
+use chrono::{DateTime, Duration, Utc};
 use fnv::FnvHasher;
-use http::StatusCode;
-use std::{
-    hash::{Hash, Hasher},
-    time::Instant,
-};
+
+use std::hash::{Hash, Hasher};
 
 use crate::{
-    auth::sign_in,
-    campus_backend::req_client_funcs::{
-        extract_exam_signup_options, extract_exam_verfahren_options, extract_grades,
-        get_client_default, get_client_with_cd_cookie,
-    },
     color_stuff::hex_to_luminance,
     types::{
-        CampusDualGrade, CampusDualSignupOption, CampusDualVerfahrenOption, CampusLoginData,
-        CampusReminders, CampusTimeline, CampusTimelineEvent, CdAuthData, CdExamDetails,
-        CdExamStats, ExamRegistrationMetadata, ExportTimelineEvent, ExportTimelineEvents,
-        LoginResponse, ResponseError, StundenplanItem,
+        CampusDualGrade, CampusDualSignupOption, CampusDualSubGrade, CampusDualVerfahrenOption,
+        CampusReminders, CampusTimelineEvent, CdAuthData, CdExamDetails, CdExamStats,
+        ExamRegistrationMetadata, ExportTimelineEvent, ExportTimelineEvents, LoginResponse,
+        ResponseError, StundenplanItem,
     },
 };
 
 pub async fn get_grades(
-    Extension(cd_auth_data): Extension<CdAuthData>,
+    Extension(_): Extension<CdAuthData>,
 ) -> Result<Json<Vec<CampusDualGrade>>, ResponseError> {
-    let now = Instant::now();
-    let client = get_client_with_cd_cookie(cd_auth_data.cookie)?;
-    println!("Time to get client: {:.2?}", now.elapsed());
-
-    let now = Instant::now();
-
-    let grade_html = client
-        .get("https://selfservice.campus-dual.de/acwork/index")
-        .send()
-        .await?
-        .error_for_status()?
-        .text()
-        .await?;
-    println!("get grades req: {:.2?}", now.elapsed());
-
-    let now = Instant::now();
-
-    let grades = extract_grades(grade_html)?;
-    println!("extract grades: {:.2?}", now.elapsed());
+    let grades = vec![
+        CampusDualGrade {
+            name: "Eine Prüfung".to_string(),
+            grade: "1,3".to_string(),
+            total_passed: Some(true),
+            credit_points: 6,
+            akad_period: "WS 2021".to_string(),
+            subgrades: vec![CampusDualSubGrade {
+                name: "Eine Prüfung".to_string(),
+                grade: "1,3".to_string(),
+                passed: Some(true),
+                beurteilung: "32.12.2024".to_string(),
+                bekanntgabe: "33.12.2024".to_string(),
+                wiederholung: Some("EP".to_string()),
+                akad_period: "WS 2021".to_string(),
+            }],
+        },
+        CampusDualGrade {
+            name: "Kläglich".to_string(),
+            grade: "5,0".to_string(),
+            total_passed: Some(false),
+            credit_points: 69,
+            akad_period: "WS 2021".to_string(),
+            subgrades: vec![
+                CampusDualSubGrade {
+                    name: "Der Tragödie erster Teil".to_string(),
+                    grade: "5,0".to_string(),
+                    passed: Some(false),
+                    beurteilung: "32.12.2024".to_string(),
+                    bekanntgabe: "33.12.2024".to_string(),
+                    wiederholung: Some("EP".to_string()),
+                    akad_period: "WS 2021".to_string(),
+                },
+                CampusDualSubGrade {
+                    name: "Two for two".to_string(),
+                    grade: "5,0".to_string(),
+                    passed: Some(false),
+                    beurteilung: "32.12.2024".to_string(),
+                    bekanntgabe: "33.12.2024".to_string(),
+                    wiederholung: Some("WP1".to_string()),
+                    akad_period: "WS 2021".to_string(),
+                },
+            ],
+        },
+    ];
 
     Ok(Json(grades))
 }
 
 pub async fn check_revive_session(
-    Extension(cd_auth_data): Extension<CdAuthData>,
+    Extension(_): Extension<CdAuthData>,
 ) -> Result<Json<Option<LoginResponse>>, ResponseError> {
     println!("checking session...");
 
-    let client = get_client_with_cd_cookie(cd_auth_data.cookie)?;
-
-    let resp = client
-        .get("https://erp.campus-dual.de/sap/bc/webdynpro/sap/zba_initss?sap-client=100&sap-language=de&uri=https://selfservice.campus-dual.de/index/login")
-        .send()
-        .await?;
-
-    match resp.status().as_u16() {
-        // 200 means the old session is not alive anymore
-        200 => {
-            println!("session was dead");
-            let new_login_response = sign_in(Json(CampusLoginData {
-                username: cd_auth_data.user,
-                password: cd_auth_data.password,
-            }))
-            .await;
-
-            println!("revive ok?={}", new_login_response.is_ok());
-
-            match new_login_response {
-                Ok(Json(login_response)) => Ok(Json(Some(login_response))),
-                Err(_) => Err(ResponseError {
-                    message: "Failed to log in to CaDu - did the password change?".to_string(),
-                    status_code: StatusCode::UNAUTHORIZED,
-                }),
-            }
-        }
-        500 => Ok(Json(None)),
-        _ => Err(ResponseError {
-            message: "CD healthcheck failed".to_string(),
-            status_code: resp.status(),
-        }),
-    }
+    Ok(Json(None))
 }
 
 pub async fn get_examsignup(
-    Extension(cd_auth_data): Extension<CdAuthData>,
+    Extension(_): Extension<CdAuthData>,
 ) -> Result<Json<Vec<CampusDualSignupOption>>, ResponseError> {
-    let client = get_client_with_cd_cookie(cd_auth_data.cookie)?;
-    let exam_signup_html = client
-        .get("https://selfservice.campus-dual.de/acwork/expproc")
-        .send()
-        .await?
-        .error_for_status()?
-        .text()
-        .await?;
-
-    let signup_options = extract_exam_signup_options(exam_signup_html).await?;
+    let signup_options = vec![
+        CampusDualSignupOption {
+            name: "Eine Prüfung".to_string(),
+            verfahren: "Verfahren".to_string(),
+            pruefart: "Prüfungsart".to_string(),
+            status: "Status".to_string(),
+            signup_information: "Wichtige Info".to_string(),
+            exam_date: Some("32.12.2024".to_string()),
+            exam_time: Some("12:34".to_string()),
+            exam_room: Some("SSR 123".to_string()),
+            warning_message: Some("Anmeldung ist nur noch bis gestern möglich".to_string()),
+            signup_until: Some("31.12.2024".to_string()),
+            internal_metadata: Some(ExamRegistrationMetadata {
+                assessment: "".to_string(),
+                peryr: "".to_string(),
+                perid: "".to_string(),
+                offerno: "".to_string(),
+            }),
+        },
+        CampusDualSignupOption {
+            name: "Andere Prüfung".to_string(),
+            verfahren: "Verfahren".to_string(),
+            pruefart: "Prüfungsart".to_string(),
+            status: "Status".to_string(),
+            signup_information: "Wichtige Info".to_string(),
+            exam_date: Some("32.12.2024".to_string()),
+            exam_time: Some("12:34".to_string()),
+            exam_room: Some("SSR 123".to_string()),
+            warning_message: Some("Anmeldung ist nur noch bis gestern möglich".to_string()),
+            signup_until: Some("31.12.2024".to_string()),
+            internal_metadata: Some(ExamRegistrationMetadata {
+                assessment: "".to_string(),
+                peryr: "".to_string(),
+                perid: "".to_string(),
+                offerno: "".to_string(),
+            }),
+        },
+    ];
 
     Ok(Json(signup_options))
 }
 
 pub async fn post_registerexam(
-    Extension(cd_auth_data): Extension<CdAuthData>,
-    Json(examregist_meta): Json<ExamRegistrationMetadata>,
+    Extension(_): Extension<CdAuthData>,
+    Json(_): Json<ExamRegistrationMetadata>,
 ) -> Result<String, ResponseError> {
-    let client = get_client_default();
-    let exam_regist_resp = client
-        .get(format!(
-            "https://selfservice.campus-dual.de/acwork/registerexam?userid={}&assessment={}&peryr={}&perid={}&offerno={}&hash={}",
-            cd_auth_data.user,
-            examregist_meta.assessment,
-            examregist_meta.peryr,
-            examregist_meta.perid,
-            examregist_meta.offerno,
-            cd_auth_data.hash,
-        ))
-        .send()
-        .await?
-        .error_for_status()?;
-
-    Ok(exam_regist_resp.text().await?)
+    Ok("bloat".to_string())
 }
 
 pub async fn get_examdetails(
-    Extension(cd_auth_data): Extension<CdAuthData>,
-    Json(examregist_meta): Json<ExamRegistrationMetadata>,
+    Extension(_): Extension<CdAuthData>,
+    Json(_): Json<ExamRegistrationMetadata>,
 ) -> Result<Json<CdExamDetails>, ResponseError> {
-    let client = get_client_default();
-    let mut exam_details: CdExamDetails = client
-        .get(format!(
-            "https://selfservice.campus-dual.de/acwork/offerdetail?user={}&objidexm=undefined&evob_objid={}&peryr={}&perid={}&offerno={}",
-            cd_auth_data.user,
-            examregist_meta.assessment,
-            examregist_meta.peryr,
-            examregist_meta.perid,
-            examregist_meta.offerno,
-        ))
-        .send()
-        .await?
-        .error_for_status()?
-        .json()
-        .await?;
-
-    let examorg_long = {
-        let resp = client
-            .get(format!(
-                "https://selfservice.campus-dual.de/acwork/examorg?examorg={}",
-                exam_details.ev_examorg_text
-            ))
-            .send()
-            .await?
-            .error_for_status();
-        match resp {
-            Ok(resp) => serde_json::from_str(&resp.text().await?)?,
-            Err(_) => exam_details.ev_examorg_text.clone(),
-        }
+    let exam_details = CdExamDetails {
+        ev_agrtype_text: "Aggregationstyp".to_string(),
+        ev_audtype_text: "Auditoriumstyp".to_string(),
+        ev_continue_indicator: "Fortsetzungsindikator".to_string(),
+        ev_dereg_end: "Abmeldefrist".to_string(),
+        ev_dereg_endtime: "Abmeldefrist".to_string(),
+        ev_duration: "Dauer".to_string(),
+        ev_durunit: "Dauer".to_string(),
+        ev_exambegtime: "Prüfungsbeginn".to_string(),
+        ev_examdate: "Prüfungsdatum".to_string(),
+        ev_examendtime: "Prüfungsende".to_string(),
+        ev_examorg_text: "Prüfungsorganisation".to_string(),
+        ev_examorg_longtext: Some("juckt".to_string()),
+        ev_instructor: "Prüfer".to_string(),
+        ev_location_short: "Raum".to_string(),
+        ev_location_stext: "Raum".to_string(),
+        ev_obtype_text: "Objekttyp".to_string(),
+        ev_reason: "Grund".to_string(),
+        ev_regis_begin: "Anmeldefrist".to_string(),
+        ev_regis_begtime: "Anmeldefrist".to_string(),
+        ev_regis_end: "Anmeldefrist".to_string(),
+        ev_regis_endtime: "Anmeldefrist".to_string(),
+        ev_room_short: "Raum".to_string(),
+        ev_room_stext: "Raum".to_string(),
+        ev_short: "Kurz".to_string(),
+        ev_stext: "Lang".to_string(),
     };
 
-    exam_details.ev_examorg_longtext = Some(examorg_long);
     Ok(Json(exam_details))
 }
 
 pub async fn post_cancelexam(
-    Extension(cd_auth_data): Extension<CdAuthData>,
-    Json(examregist_meta): Json<ExamRegistrationMetadata>,
+    Extension(_): Extension<CdAuthData>,
+    Json(_): Json<ExamRegistrationMetadata>,
 ) -> Result<String, ResponseError> {
-    let client = get_client_default();
-    let exam_regist_resp = client
-        .get(format!(
-            "https://selfservice.campus-dual.de/acwork/cancelexam?userid={}&objid={}&hash={}",
-            cd_auth_data.user, examregist_meta.assessment, cd_auth_data.hash
-        ))
-        .send()
-        .await?
-        .error_for_status()?;
-
-    Ok(exam_regist_resp.text().await?)
+    Ok("egal".to_string())
 }
 
 pub async fn get_examverfahren(
-    Extension(cd_auth_data): Extension<CdAuthData>,
+    Extension(_): Extension<CdAuthData>,
 ) -> Result<Json<Vec<CampusDualVerfahrenOption>>, ResponseError> {
-    let client = get_client_with_cd_cookie(cd_auth_data.cookie)?;
-    let exam_verfahren_html = client
-        .get("https://selfservice.campus-dual.de/acwork/cancelproc")
-        .send()
-        .await?
-        .error_for_status()?
-        .text()
-        .await?;
-
-    let signup_verfahren = extract_exam_verfahren_options(exam_verfahren_html).await?;
+    let signup_verfahren = vec![
+        CampusDualVerfahrenOption {
+            name: "Abmeldbare Prüfung".to_string(),
+            verfahren: "Verfahren".to_string(),
+            pruefart: "Prüfungsart".to_string(),
+            status: "Status".to_string(),
+            signup_information: "Wichtige Info".to_string(),
+            exam_date: Some("32.12.2024".to_string()),
+            exam_time: Some("12:34".to_string()),
+            exam_room: Some("SSR 123".to_string()),
+            warning_message: Some("Abmeldung ist nur noch bis gestern möglich".to_string()),
+            signoff_until: Some("31.12.2024".to_string()),
+            internal_metadata: Some(ExamRegistrationMetadata {
+                assessment: "".to_string(),
+                peryr: "".to_string(),
+                perid: "".to_string(),
+                offerno: "".to_string(),
+            }),
+        },
+        CampusDualVerfahrenOption {
+            name: "Andere Prüfung".to_string(),
+            verfahren: "Verfahren".to_string(),
+            pruefart: "Prüfungsart".to_string(),
+            status: "Status".to_string(),
+            signup_information: "Wichtige Info".to_string(),
+            exam_date: Some("32.12.2024".to_string()),
+            exam_time: Some("12:34".to_string()),
+            exam_room: Some("SSR 123".to_string()),
+            warning_message: Some("Abmeldung ist nur noch bis gestern möglich".to_string()),
+            signoff_until: Some("31.12.2024".to_string()),
+            internal_metadata: Some(ExamRegistrationMetadata {
+                assessment: "".to_string(),
+                peryr: "".to_string(),
+                perid: "".to_string(),
+                offerno: "".to_string(),
+            }),
+        },
+    ];
 
     Ok(Json(signup_verfahren))
 }
 
-pub async fn get_ects(
-    Extension(cd_authdata): Extension<CdAuthData>,
-) -> Result<String, ResponseError> {
-    let client = get_client_default();
-
-    let user = cd_authdata.user;
-    let hash = cd_authdata.hash;
-
-    let resp = client
-        .get(format!(
-            "https://selfservice.campus-dual.de/dash/getcp?user={user}&hash={hash}"
-        ))
-        .send()
-        .await?
-        .error_for_status()?
-        .text()
-        .await?;
-
-    // todo!();
-    Ok(resp)
+pub async fn get_ects(Extension(_): Extension<CdAuthData>) -> Result<String, ResponseError> {
+    Ok("155".to_string())
 }
 
-pub async fn get_fachsem(
-    Extension(cd_authdata): Extension<CdAuthData>,
-) -> Result<String, ResponseError> {
-    let client = get_client_default();
-
-    let user = cd_authdata.user;
-    let hash = cd_authdata.hash;
-
-    let resp = client
-        .get(format!(
-            "https://selfservice.campus-dual.de/dash/getfs?user={user}&hash={hash}"
-        ))
-        .send()
-        .await?
-        .error_for_status()?
-        .text()
-        .await?;
-
-    // Remove the quotes from the string, parse number
-    let whyisthisnecessary = resp.replace('"', "");
-    let number = whyisthisnecessary.trim().parse::<u32>();
-
-    match number {
-        Ok(num) => Ok(num.to_string()),
-        Err(_) => Err(ResponseError {
-            message: "CampusDual returned garbage".to_string(),
-            status_code: http::StatusCode::INTERNAL_SERVER_ERROR,
-        }),
-    }
+pub async fn get_fachsem(Extension(_): Extension<CdAuthData>) -> Result<String, ResponseError> {
+    Ok("6".to_string())
 }
 
 pub async fn get_examstats(
-    Extension(cd_authdata): Extension<CdAuthData>,
+    Extension(_): Extension<CdAuthData>,
 ) -> Result<Json<CdExamStats>, ResponseError> {
     // CAMPUSDUAL PIECHART:
     // daten/partitionen: ['erfolgreich', 0], ['nicht bestanden', 0], ['gebucht', 0]
     // farben: ["#0070a3", "#4297d7", "#fcbe04"]
 
-    let client = get_client_default();
-
-    let user = cd_authdata.user;
-    let hash = cd_authdata.hash;
-
-    let resp = client
-        .get(format!(
-            "https://selfservice.campus-dual.de/dash/getexamstats?user={user}&hash={hash}"
-        ))
-        .send()
-        .await?
-        .error_for_status()?
-        .json::<CdExamStats>()
-        .await?;
+    let resp = CdExamStats {
+        total: 100,
+        successful: 69,
+        unsuccessful: 0,
+        unassessed: 0,
+        booked: 0,
+        finished: 0,
+        ronmodus: 31,
+    };
 
     Ok(Json(resp))
 }
 
 pub async fn get_stundenplan(
-    Extension(cd_authdata): Extension<CdAuthData>,
+    Extension(_): Extension<CdAuthData>,
 ) -> Result<Json<Vec<StundenplanItem>>, ResponseError> {
-    let client = get_client_default();
+    let mut stundenplan: Vec<StundenplanItem> = vec![];
 
-    let user = cd_authdata.user;
-    let hash = cd_authdata.hash;
+    let today = Utc::now().date_naive();
+    let days_range = -3..=3;
 
-    let mut stundenplan: Vec<StundenplanItem> = client
-        .get(format!(
-            "https://selfservice.campus-dual.de/room/json?userid={user}&hash={hash}&start=1720735200&end=1720821600"
-        ))
-        .send()
-        .await?
-        .error_for_status()?
-        .json()
-        .await?;
+    for offset in days_range {
+        let date = today + Duration::days(offset);
+        let eight = date.and_hms_opt(8, 0, 0).unwrap().and_utc().timestamp();
+        let ninethirty = date.and_hms_opt(9, 30, 0).unwrap().and_utc().timestamp();
+
+        stundenplan.push(StundenplanItem {
+            all_day: false,
+            color: "egal".to_string(),
+            font_color: None,
+            description: "Beschreibung".to_string(),
+            editable: false,
+            end: ninethirty,
+            instructor: "Dozent".to_string(),
+            remarks: "".to_string(),
+            room: "103 Seminarraum".to_string(),
+            sinstructor: "DZNT".to_string(),
+            sroom: "103 SR".to_string(),
+            start: eight,
+            title: "Zentrales Bloatmodul".to_string(),
+        });
+    }
 
     for item in &mut stundenplan {
         item.start *= 1000;
@@ -333,59 +308,62 @@ fn string_to_rgb(input: &str) -> String {
 }
 
 pub async fn get_reminders(
-    Extension(cd_authdata): Extension<CdAuthData>,
+    Extension(_): Extension<CdAuthData>,
 ) -> Result<Json<CampusReminders>, ResponseError> {
-    let client = get_client_default();
-
-    let user = cd_authdata.user;
-    let hash = cd_authdata.hash;
-
-    let resp = client
-        .get(format!(
-            "https://selfservice.campus-dual.de/dash/getreminders?user={user}&hash={hash}"
-        ))
-        .send()
-        .await?
-        .error_for_status()?
-        .json::<CampusReminders>()
-        .await?;
+    let resp = CampusReminders {
+        electives: 1,
+        exams: 2,
+        latest: vec![],
+        semester: 7,
+        upcoming: vec![],
+    };
 
     Ok(Json(resp))
 }
 
 pub async fn get_timeline(
-    Extension(cd_authdata): Extension<CdAuthData>,
+    Extension(_): Extension<CdAuthData>,
 ) -> Result<Json<ExportTimelineEvents>, ResponseError> {
-    let client = get_client_default();
-    let resp: CampusTimeline = client
-        .get(format!(
-            "https://selfservice.campus-dual.de/dash/gettimeline?user={}",
-            cd_authdata.user
-        ))
-        .send()
-        .await?
-        .error_for_status()?
-        .json()
-        .await?;
-
-    let events = resp.events;
-
-    let fachsemester: Vec<ExportTimelineEvent> = events_by_color("#fcbe04", &events);
-    let theoriesemester: Vec<ExportTimelineEvent> = events_by_color("#0070a3", &events);
-    let praxissemester: Vec<ExportTimelineEvent> = events_by_color("#119911", &events);
-    let specials: Vec<ExportTimelineEvent> = events_by_color("#880000", &events);
+    // let fachsemester: Vec<ExportTimelineEvent> = events_by_color("#fcbe04", &events);
+    // let theoriesemester: Vec<ExportTimelineEvent> = events_by_color("#0070a3", &events);
+    // let praxissemester: Vec<ExportTimelineEvent> = events_by_color("#119911", &events);
+    // let specials: Vec<ExportTimelineEvent> = events_by_color("#880000", &events);
 
     let export_events = ExportTimelineEvents {
-        fachsemester,
-        theoriesemester,
-        praxissemester,
-        specials,
+        fachsemester: vec![ExportTimelineEvent {
+            name: "Fachsemester".to_string(),
+            description: "Ja das FS halt".to_string(),
+            color: "#fcbe04".to_string(),
+            start: "gerstenmalz".to_string(),
+            end: "alu gobi".to_string(),
+        }],
+        theoriesemester: vec![ExportTimelineEvent {
+            name: "Fachsemester".to_string(),
+            description: "Ja das FS halt".to_string(),
+            color: "#fcbe04".to_string(),
+            start: "gerstenmalz".to_string(),
+            end: "alu gobi".to_string(),
+        }],
+        praxissemester: vec![ExportTimelineEvent {
+            name: "Fachsemester".to_string(),
+            description: "Ja das FS halt".to_string(),
+            color: "#fcbe04".to_string(),
+            start: "gerstenmalz".to_string(),
+            end: "alu gobi".to_string(),
+        }],
+        specials: vec![ExportTimelineEvent {
+            name: "Fachsemester".to_string(),
+            description: "Ja das FS halt".to_string(),
+            color: "#fcbe04".to_string(),
+            start: "gerstenmalz".to_string(),
+            end: "alu gobi".to_string(),
+        }],
     };
 
     Ok(Json(export_events))
 }
 
-fn events_by_color(color: &str, events: &[CampusTimelineEvent]) -> Vec<ExportTimelineEvent> {
+fn _events_by_color(color: &str, events: &[CampusTimelineEvent]) -> Vec<ExportTimelineEvent> {
     events
         .iter()
         .filter(|event| event.color == color)
@@ -397,13 +375,13 @@ fn events_by_color(color: &str, events: &[CampusTimelineEvent]) -> Vec<ExportTim
                 .replace("<strong>", "")
                 .replace("</strong>", ""),
             color: event.color.clone(),
-            start: campusdate_to_iso8601(&event.start),
-            end: campusdate_to_iso8601(&event.end),
+            start: _campusdate_to_iso8601(&event.start),
+            end: _campusdate_to_iso8601(&event.end),
         })
         .collect()
 }
 
-fn campusdate_to_iso8601(input: &str) -> String {
+fn _campusdate_to_iso8601(input: &str) -> String {
     let format = "%a, %d %b %Y %H:%M:%S %z";
 
     let date_time = DateTime::parse_from_str(input, format).expect("Failed to parse date");

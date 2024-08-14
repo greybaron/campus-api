@@ -11,7 +11,7 @@ use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, Header, TokenData, Validation};
 use serde_json::json;
 
-use crate::{campus_backend::login::cdlogin_get_jcookie_and_meta, types::LoginResponse};
+use crate::types::{LoginResponse, UserBasicInfo};
 use crate::{
     constants::{JWT_DEC_KEY, JWT_ENC_KEY},
     encryption::{decrypt, encrypt},
@@ -129,12 +129,22 @@ pub async fn authorize(mut req: Request, next: Next) -> Result<Response<Body>, R
 pub async fn sign_in(
     Json(login_data): Json<CampusLoginData>,
 ) -> Result<Json<LoginResponse>, StatusCode> {
-    // Attempt CD login
-    let (cd_auth_data, user_basic_info) = match cdlogin_get_jcookie_and_meta(login_data).await {
-        Ok((cd_auth_data, user_basic_info)) => (cd_auth_data, user_basic_info),
-        Err(_) => {
-            return Err(StatusCode::UNAUTHORIZED); // CD login failed
-        }
+    if !(login_data.username == "user" && login_data.password == "password") {
+        return Err(StatusCode::UNAUTHORIZED);
+    }
+
+    let cd_auth_data = CdAuthData {
+        cookie: "linseneintopf".to_string(),
+        hash: "basmatireis".to_string(),
+        user: "5001724".to_string(),
+        password: "password".to_string(),
+    };
+    let user_basic_info = UserBasicInfo {
+        first_name: "Max".to_string(),
+        last_name: "Musterperson".to_string(),
+        seminar_group: "CS21-2".to_string(),
+        seminar_name: "Studiengang Informatik".to_string(),
+        user: "5001724".to_string(),
     };
 
     // Generate JWT
