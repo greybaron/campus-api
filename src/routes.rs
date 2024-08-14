@@ -36,7 +36,7 @@ pub async fn app() -> Router {
     let governor_conf_signin = Arc::new(
         GovernorConfigBuilder::default()
             .burst_size(1)
-            .per_second(5)
+            .per_second(60)
             .error_handler(|e| {
                 println!("got a goverr: {}", e);
                 "bruh".into_response()
