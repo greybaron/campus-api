@@ -262,12 +262,12 @@ pub async fn get_stundenplan(
             editable: false,
             end: ninethirty,
             instructor: "Dozent".to_string(),
-            remarks: "".to_string(),
+            remarks: "dashier".to_string(),
             room: "103 Seminarraum".to_string(),
             sinstructor: "DZNT".to_string(),
             sroom: "103 SR".to_string(),
             start: eight,
-            title: "Zentrales Bloatmodul".to_string(),
+            title: "ZSPM".to_string(),
         });
     }
 
