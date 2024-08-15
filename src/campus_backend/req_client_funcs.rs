@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use anyhow::{Context, Result};
+use chrono::NaiveDate;
 use cookie_store::CookieStore;
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -115,7 +116,6 @@ pub fn extract_grades(html_text: String) -> Result<Vec<CampusDualGrade>> {
             };
             subgrades.push(bloat);
         }
-
         grades.push(CampusDualGrade {
             name: name.to_string(),
             grade: grade.to_string(),
@@ -126,7 +126,21 @@ pub fn extract_grades(html_text: String) -> Result<Vec<CampusDualGrade>> {
         });
     }
 
+    grades.sort_by(|grade_a, grade_b| {
+        get_newest_subgrade_date(grade_b).cmp(&get_newest_subgrade_date(grade_a))
+    });
+
     Ok(grades)
+}
+
+fn get_newest_subgrade_date(grade: &CampusDualGrade) -> NaiveDate {
+    let newest_subgrade = grade
+        .subgrades
+        .iter()
+        .max_by(|a, b| a.bekanntgabe.cmp(&b.bekanntgabe))
+        .unwrap();
+
+    NaiveDate::parse_from_str(&newest_subgrade.bekanntgabe, "%d.%m.%Y").unwrap()
 }
 
 pub async fn extract_exam_signup_options(html_text: String) -> Result<Vec<CampusDualSignupOption>> {
