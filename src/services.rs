@@ -858,6 +858,10 @@ pub async fn get_stundenplan(
         let date = today + Duration::days(offset);
         let eight = date.and_hms_opt(8, 0, 0).unwrap().and_utc().timestamp();
         let ninethirty = date.and_hms_opt(9, 30, 0).unwrap().and_utc().timestamp();
+        let ten = date.and_hms_opt(10, 0, 0).unwrap().and_utc().timestamp();
+        let eleventhirty = date.and_hms_opt(11, 30, 0).unwrap().and_utc().timestamp();
+        let twelve = date.and_hms_opt(12, 0, 0).unwrap().and_utc().timestamp();
+        let thirteen = date.and_hms_opt(13, 0, 0).unwrap().and_utc().timestamp();
 
         stundenplan.push(StundenplanItem {
             all_day: false,
@@ -872,8 +876,40 @@ pub async fn get_stundenplan(
             sinstructor: "DZNT".to_string(),
             sroom: "103 SR".to_string(),
             start: eight,
-            title: "ZSPM".to_string(),
+            title: "n-ZSPM1".to_string(),
         });
+        stundenplan.push(StundenplanItem {
+            all_day: false,
+            color: "egal".to_string(),
+            font_color: None,
+            description: "Beschreibung".to_string(),
+            editable: false,
+            end: eleventhirty,
+            instructor: "Dozent".to_string(),
+            remarks: "remarks".to_string(),
+            room: "103 Seminarraum".to_string(),
+            sinstructor: "DZNT".to_string(),
+            sroom: "103 SR".to_string(),
+            start: ten,
+            title: "n-ZSPM2".to_string(),
+        });
+
+        stundenplan.push(StundenplanItem {
+            all_day: false,
+            color: "egal".to_string(),
+            font_color: None,
+            description: "Beschreibung".to_string(),
+            editable: false,
+            end: thirteen,
+            instructor: "Dozent".to_string(),
+            remarks: "remarks".to_string(),
+            room: "103 Seminarraum".to_string(),
+            sinstructor: "DZNT".to_string(),
+            sroom: "103 SR".to_string(),
+            start: twelve,
+            title: "n-ZSPM2".to_string(),
+        });
+
     }
 
     for item in &mut stundenplan {
