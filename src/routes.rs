@@ -64,6 +64,7 @@ pub async fn app() -> Router {
     Router::new()
         .route("/check_revive_session", get(services::check_revive_session))
         .route("/get_grades", get(services::get_grades))
+        .route("/get_gradestats", post(services::get_gradestats))
         .route("/get_examsignup", get(services::get_examsignup))
         .route("/registerexam", post(services::post_registerexam))
         .route("/get_examdetails", post(services::get_examdetails))

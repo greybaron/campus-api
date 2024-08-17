@@ -37,7 +37,7 @@ pub struct CdAuthData {
     pub password: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct CampusDualGrade {
     pub name: String,
     pub grade: String,
@@ -47,7 +47,7 @@ pub struct CampusDualGrade {
     pub subgrades: Vec<CampusDualSubGrade>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct CampusDualSubGrade {
     pub name: String,
     pub grade: String,
@@ -56,6 +56,14 @@ pub struct CampusDualSubGrade {
     pub bekanntgabe: String,
     pub wiederholung: Option<String>,
     pub akad_period: String,
+    pub internal_metadata: Option<SubGradeMetadata>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct SubGradeMetadata {
+    pub module: String,
+    pub peryr: String,
+    pub perid: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -307,4 +315,21 @@ pub struct CdExamDetails {
     pub ev_short: String,
     #[serde(rename(deserialize = "EV_STEXT"))]
     pub ev_stext: String,
+}
+
+#[derive(Deserialize)]
+pub struct CdGradeStatEntry {
+    #[serde(rename(deserialize = "GRADETEXT"))]
+    pub gradetext: String,
+    #[serde(rename(deserialize = "COUNT"))]
+    pub count: i64,
+}
+
+#[derive(Debug, Serialize, Default)]
+pub struct GradeStatsAllStudents {
+    pub one: i64,
+    pub two: i64,
+    pub three: i64,
+    pub four: i64,
+    pub ronmodus: i64,
 }
