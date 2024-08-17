@@ -17,8 +17,9 @@ use crate::{
     types::{
         CampusDualGrade, CampusDualSignupOption, CampusDualVerfahrenOption, CampusLoginData,
         CampusReminders, CampusTimeline, CampusTimelineEvent, CdAuthData, CdExamDetails,
-        CdExamStats, ExamRegistrationMetadata, ExportTimelineEvent, ExportTimelineEvents,
-        LoginResponse, ResponseError, StundenplanItem,
+        CdExamStats, CdGradeStatEntry, ExamRegistrationMetadata, ExportTimelineEvent,
+        ExportTimelineEvents, GradeStatsAllStudents, LoginResponse, ResponseError, StundenplanItem,
+        SubGradeMetadata,
     },
 };
 
@@ -46,6 +47,41 @@ pub async fn get_grades(
     println!("extract grades: {:.2?}", now.elapsed());
 
     Ok(Json(grades))
+}
+
+pub async fn get_gradestats(
+    Extension(cd_auth_data): Extension<CdAuthData>,
+    Json(subgrade_meta): Json<SubGradeMetadata>,
+) -> Result<Json<GradeStatsAllStudents>, ResponseError> {
+    let client = get_client_with_cd_cookie(cd_auth_data.cookie)?;
+
+    let grade_stats: Vec<CdGradeStatEntry> = client
+        .get(format!(
+            "https://selfservice.campus-dual.de/acwork/mscoredist?module={}&peryr={}&perid={}",
+            subgrade_meta.module, subgrade_meta.peryr, subgrade_meta.perid
+        ))
+        .send()
+        .await?
+        .error_for_status()?
+        .json()
+        .await?;
+
+    let mut all_stats = GradeStatsAllStudents::default();
+
+    for stat in grade_stats {
+        match stat.gradetext.as_str() {
+            "sehr gut" => all_stats.one = stat.count,
+            "gut" => all_stats.two = stat.count,
+            "befriedigend" => all_stats.three = stat.count,
+            "ausreichend" => all_stats.four = stat.count,
+            "nicht ausreichend" => all_stats.ronmodus = stat.count,
+            _ => {
+                log::warn!("unknown grade stat key: {}", stat.gradetext)
+            }
+        }
+    }
+
+    Ok(Json(all_stats))
 }
 
 pub async fn check_revive_session(

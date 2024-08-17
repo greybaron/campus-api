@@ -13,7 +13,7 @@ use crate::{
     constants::CD_CERT_PEM,
     types::{
         CampusDualGrade, CampusDualSignupOption, CampusDualSubGrade, CampusDualVerfahrenOption,
-        ExamRegistrationMetadata,
+        ExamRegistrationMetadata, SubGradeMetadata,
     },
 };
 
@@ -105,6 +105,22 @@ pub fn extract_grades(html_text: String) -> Result<Vec<CampusDualGrade>> {
             let wiederholung = content.next().unwrap().text().next().map(|s| s.to_string());
             let akad_period = content.next().unwrap().text().next().unwrap().to_string();
 
+            let internal_metadata_opt = subline
+                .select(&Selector::parse("td>div#mscore>a").unwrap())
+                .next();
+
+            let internal_metadata = internal_metadata_opt.and_then(|internal_metadata| {
+                let module = internal_metadata.attr("data-module")?;
+                let peryr = internal_metadata.attr("data-peryr")?;
+                let perid = internal_metadata.attr("data-perid")?;
+
+                Some(SubGradeMetadata {
+                    module: module.to_string(),
+                    peryr: peryr.to_string(),
+                    perid: perid.to_string(),
+                })
+            });
+
             let bloat = CampusDualSubGrade {
                 name: sub_name,
                 grade: sub_grade.to_string(),
@@ -113,6 +129,7 @@ pub fn extract_grades(html_text: String) -> Result<Vec<CampusDualGrade>> {
                 bekanntgabe,
                 wiederholung,
                 akad_period,
+                internal_metadata,
             };
             subgrades.push(bloat);
         }
