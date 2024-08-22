@@ -1,6 +1,8 @@
 use axum::{Extension, Json};
 use chrono::{DateTime, Duration, Utc};
 use fnv::FnvHasher;
+use rand::Rng;
+use tokio::time::{sleep, Duration as TokioDuration};
 
 use std::hash::{Hash, Hasher};
 
@@ -14,9 +16,15 @@ use crate::{
     },
 };
 
+pub async fn sleep_some() {
+    let sleep_time = rand::thread_rng().gen_range(200..1000);
+    sleep(TokioDuration::from_millis(sleep_time)).await;
+}
+
 pub async fn get_grades(
     Extension(_): Extension<CdAuthData>,
 ) -> Result<Json<Vec<CampusDualGrade>>, ResponseError> {
+    sleep_some().await;
     let grades_json = r#"[
     {
         "name": "Integrierte Informationssysteme (5CS-ERPS-CS)",
@@ -882,6 +890,7 @@ pub async fn get_gradestats(
     Extension(_): Extension<CdAuthData>,
     Json(_): Json<SubGradeMetadata>,
 ) -> Result<Json<GradeStatsAllStudents>, ResponseError> {
+    sleep_some().await;
     let all_stats = GradeStatsAllStudents {
         one: 3,
         two: 8,
@@ -897,6 +906,7 @@ pub async fn check_revive_session(
     Extension(_): Extension<CdAuthData>,
 ) -> Result<Json<Option<LoginResponse>>, ResponseError> {
     println!("checking session...");
+    sleep_some().await;
 
     Ok(Json(None))
 }
@@ -904,6 +914,7 @@ pub async fn check_revive_session(
 pub async fn get_examsignup(
     Extension(_): Extension<CdAuthData>,
 ) -> Result<Json<Vec<CampusDualSignupOption>>, ResponseError> {
+    sleep_some().await;
     let signup_options = vec![
         CampusDualSignupOption {
             name: "Eine Prüfung".to_string(),
@@ -950,6 +961,7 @@ pub async fn post_registerexam(
     Extension(_): Extension<CdAuthData>,
     Json(_): Json<ExamRegistrationMetadata>,
 ) -> Result<String, ResponseError> {
+    sleep_some().await;
     Ok("bloat".to_string())
 }
 
@@ -957,6 +969,7 @@ pub async fn get_examdetails(
     Extension(_): Extension<CdAuthData>,
     Json(_): Json<ExamRegistrationMetadata>,
 ) -> Result<Json<CdExamDetails>, ResponseError> {
+    sleep_some().await;
     let exam_details = CdExamDetails {
         ev_agrtype_text: "Aggregationstyp".to_string(),
         ev_audtype_text: "Auditoriumstyp".to_string(),
@@ -992,12 +1005,14 @@ pub async fn post_cancelexam(
     Extension(_): Extension<CdAuthData>,
     Json(_): Json<ExamRegistrationMetadata>,
 ) -> Result<String, ResponseError> {
+    sleep_some().await;
     Ok("egal".to_string())
 }
 
 pub async fn get_examverfahren(
     Extension(_): Extension<CdAuthData>,
 ) -> Result<Json<Vec<CampusDualVerfahrenOption>>, ResponseError> {
+    sleep_some().await;
     let signup_verfahren = vec![
         CampusDualVerfahrenOption {
             name: "Abmeldbare Prüfung".to_string(),
@@ -1041,16 +1056,19 @@ pub async fn get_examverfahren(
 }
 
 pub async fn get_ects(Extension(_): Extension<CdAuthData>) -> Result<String, ResponseError> {
+    sleep_some().await;
     Ok("155".to_string())
 }
 
 pub async fn get_fachsem(Extension(_): Extension<CdAuthData>) -> Result<String, ResponseError> {
+    sleep_some().await;
     Ok("6".to_string())
 }
 
 pub async fn get_examstats(
     Extension(_): Extension<CdAuthData>,
 ) -> Result<Json<CdExamStats>, ResponseError> {
+    sleep_some().await;
     // CAMPUSDUAL PIECHART:
     // daten/partitionen: ['erfolgreich', 0], ['nicht bestanden', 0], ['gebucht', 0]
     // farben: ["#0070a3", "#4297d7", "#fcbe04"]
@@ -1071,6 +1089,11 @@ pub async fn get_examstats(
 pub async fn get_stundenplan(
     Extension(_): Extension<CdAuthData>,
 ) -> Result<Json<Vec<StundenplanItem>>, ResponseError> {
+    sleep_some().await;
+    sleep_some().await;
+    sleep_some().await;
+    sleep_some().await;
+
     let mut stundenplan: Vec<StundenplanItem> = vec![];
 
     let today = Utc::now().date_naive();
@@ -1172,6 +1195,7 @@ fn string_to_rgb(input: &str) -> String {
 pub async fn get_reminders(
     Extension(_): Extension<CdAuthData>,
 ) -> Result<Json<CampusReminders>, ResponseError> {
+    sleep_some().await;
     let resp = CampusReminders {
         electives: 1,
         exams: 2,
@@ -1186,10 +1210,7 @@ pub async fn get_reminders(
 pub async fn get_timeline(
     Extension(_): Extension<CdAuthData>,
 ) -> Result<Json<ExportTimelineEvents>, ResponseError> {
-    // let fachsemester: Vec<ExportTimelineEvent> = events_by_color("#fcbe04", &events);
-    // let theoriesemester: Vec<ExportTimelineEvent> = events_by_color("#0070a3", &events);
-    // let praxissemester: Vec<ExportTimelineEvent> = events_by_color("#119911", &events);
-    // let specials: Vec<ExportTimelineEvent> = events_by_color("#880000", &events);
+    sleep_some().await;
 
     let export_events = ExportTimelineEvents {
         fachsemester: vec![ExportTimelineEvent {
