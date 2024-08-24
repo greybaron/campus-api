@@ -127,12 +127,8 @@ pub async fn authorize(mut req: Request, next: Next) -> Result<Response<Body>, R
 }
 
 pub async fn sign_in(
-    Json(login_data): Json<CampusLoginData>,
+    Json(_): Json<CampusLoginData>,
 ) -> Result<Json<LoginResponse>, StatusCode> {
-    if !(login_data.username == "user" && login_data.password == "password") {
-        return Err(StatusCode::UNAUTHORIZED);
-    }
-
     let cd_auth_data = CdAuthData {
         cookie: "linseneintopf".to_string(),
         hash: "basmatireis".to_string(),
