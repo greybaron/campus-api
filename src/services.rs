@@ -17,7 +17,7 @@ use crate::{
 };
 
 pub async fn sleep_some() {
-    let sleep_time = rand::thread_rng().gen_range(200..1000);
+    let sleep_time = rand::thread_rng().gen_range(200..800);
     sleep(TokioDuration::from_millis(sleep_time)).await;
 }
 
@@ -896,7 +896,7 @@ pub async fn get_gradestats(
         two: 8,
         three: 8,
         four: 4,
-        ronmodus: 4,
+        ronmodus: 3,
     };
 
     Ok(Json(all_stats))
@@ -917,15 +917,15 @@ pub async fn get_examsignup(
     sleep_some().await;
     let signup_options = vec![
         CampusDualSignupOption {
-            name: "Eine Prüfung".to_string(),
-            verfahren: "Verfahren".to_string(),
-            pruefart: "Prüfungsart".to_string(),
-            status: "Status".to_string(),
-            signup_information: "Wichtige Info".to_string(),
+            name: "P1 Servers. Techn. u. vert. Systeme (SE) (5CS-STDS-01)".to_string(),
+            verfahren: "SEP".to_string(),
+            pruefart: "Sommersemester".to_string(),
+            status: "📝".to_string(),
+            signup_information: "Prüfungsart: MPMA".to_string(),
             exam_date: Some("32.12.2024".to_string()),
             exam_time: Some("12:34".to_string()),
-            exam_room: Some("SSR 123".to_string()),
-            warning_message: Some("Anmeldung ist nur noch bis gestern möglich".to_string()),
+            exam_room: Some("Ort: 5SR 104".to_string()),
+            warning_message: Some("Anmeldung ist nur noch bis morgen möglich.".to_string()),
             signup_until: Some("31.12.2024".to_string()),
             internal_metadata: Some(ExamRegistrationMetadata {
                 assessment: "".to_string(),
@@ -935,22 +935,17 @@ pub async fn get_examsignup(
             }),
         },
         CampusDualSignupOption {
-            name: "Andere Prüfung".to_string(),
-            verfahren: "Verfahren".to_string(),
-            pruefart: "Prüfungsart".to_string(),
-            status: "Status".to_string(),
-            signup_information: "Wichtige Info".to_string(),
+            name: "P Bachelorarbeit SG Informatik (5CS-BACS-00)".to_string(),
+            verfahren: "SEP".to_string(),
+            pruefart: "Sommersemester".to_string(),
+            status: "🚫".to_string(),
+            signup_information: "Prüfungsart: BATH".to_string(),
             exam_date: Some("32.12.2024".to_string()),
             exam_time: Some("12:34".to_string()),
-            exam_room: Some("SSR 123".to_string()),
-            warning_message: Some("Anmeldung ist nur noch bis gestern möglich".to_string()),
+            exam_room: Some("Ort: 5SR 104".to_string()),
+            warning_message: Some("Anmeldung war nur noch bis gestern möglich.".to_string()),
             signup_until: Some("31.12.2024".to_string()),
-            internal_metadata: Some(ExamRegistrationMetadata {
-                assessment: "".to_string(),
-                peryr: "".to_string(),
-                perid: "".to_string(),
-                offerno: "".to_string(),
-            }),
+            internal_metadata: None,
         },
     ];
 
@@ -962,7 +957,7 @@ pub async fn post_registerexam(
     Json(_): Json<ExamRegistrationMetadata>,
 ) -> Result<String, ResponseError> {
     sleep_some().await;
-    Ok("bloat".to_string())
+    Ok("{}".to_string())
 }
 
 pub async fn get_examdetails(
@@ -970,33 +965,34 @@ pub async fn get_examdetails(
     Json(_): Json<ExamRegistrationMetadata>,
 ) -> Result<Json<CdExamDetails>, ResponseError> {
     sleep_some().await;
-    let exam_details = CdExamDetails {
-        ev_agrtype_text: "Aggregationstyp".to_string(),
-        ev_audtype_text: "Auditoriumstyp".to_string(),
-        ev_continue_indicator: "Fortsetzungsindikator".to_string(),
-        ev_dereg_end: "Abmeldefrist".to_string(),
-        ev_dereg_endtime: "Abmeldefrist".to_string(),
-        ev_duration: "Dauer".to_string(),
-        ev_durunit: "Dauer".to_string(),
-        ev_exambegtime: "09:00".to_string(),
-        ev_examdate: "Prüfungsdatum".to_string(),
-        ev_examendtime: "12:00".to_string(),
-        ev_examorg_text: "Prüfungsorganisation".to_string(),
-        ev_examorg_longtext: Some("juckt".to_string()),
-        ev_instructor: "Prüfer".to_string(),
-        ev_location_short: "Raum".to_string(),
-        ev_location_stext: "Raum".to_string(),
-        ev_obtype_text: "Objekttyp".to_string(),
-        ev_reason: "Grund".to_string(),
-        ev_regis_begin: "Anmeldefrist".to_string(),
-        ev_regis_begtime: "Anmeldefrist".to_string(),
-        ev_regis_end: "Anmeldefrist".to_string(),
-        ev_regis_endtime: "Anmeldefrist".to_string(),
-        ev_room_short: "Raum".to_string(),
-        ev_room_stext: "Raum".to_string(),
-        ev_short: "Kurz".to_string(),
-        ev_stext: "Lang".to_string(),
-    };
+    let json = r#"{
+    "EV_AGRTYPE_TEXT": "Teilleistungsbeurteilung",
+    "EV_AUDTYPE_TEXT": "Abschluss eines Studienmoduls",
+    "EV_CONTINUE_INDICATOR": "",
+    "EV_DEREG_END": "2024-05-21",
+    "EV_DEREG_ENDTIME": "13:00:00",
+    "EV_DURATION": "120",
+    "EV_DURUNIT": "MIN",
+    "EV_EXAMBEGTIME": "13:00:00",
+    "EV_EXAMDATE": "2024-05-22",
+    "EV_EXAMENDTIME": "15:00:00",
+    "EV_EXAMORG_TEXT": "KLSR",
+    "EV_EXAMORG_LONGTEXT": "Klausur (K)",
+    "EV_INSTRUCTOR": "Prof. Dr. Paar, Nitsch",
+    "EV_LOCATION_SHORT": "Dresden",
+    "EV_LOCATION_STEXT": "Berufsakademie Dresden",
+    "EV_OBTYPE_TEXT": "Modulprüfung",
+    "EV_REASON": "",
+    "EV_REGIS_BEGIN": "2024-03-18",
+    "EV_REGIS_BEGTIME": "07:00:00",
+    "EV_REGIS_END": "2024-05-15",
+    "EV_REGIS_ENDTIME": "07:00:00",
+    "EV_ROOM_SHORT": "2.234",
+    "EV_ROOM_STEXT": "Seminarraum 2.234",
+    "EV_SHORT": "5CS-STDS-01",
+    "EV_STEXT": "P1 Servers. Techn. u. vert. Systeme (SE)"
+}"#;
+    let exam_details: CdExamDetails = serde_json::from_str(json).unwrap();
 
     Ok(Json(exam_details))
 }
@@ -1006,7 +1002,7 @@ pub async fn post_cancelexam(
     Json(_): Json<ExamRegistrationMetadata>,
 ) -> Result<String, ResponseError> {
     sleep_some().await;
-    Ok("egal".to_string())
+    Ok("Test-Fehler".to_string())
 }
 
 pub async fn get_examverfahren(
@@ -1196,13 +1192,115 @@ pub async fn get_reminders(
     Extension(_): Extension<CdAuthData>,
 ) -> Result<Json<CampusReminders>, ResponseError> {
     sleep_some().await;
-    let resp = CampusReminders {
-        electives: 1,
-        exams: 2,
-        latest: vec![],
-        semester: 7,
-        upcoming: vec![],
-    };
+    let json = r#"{
+    "ELECTIVES": 0,
+    "EXAMS": 1,
+    "LATEST": [
+        {
+            "ACAD_SESSION": "Sommerperiode",
+            "ACAD_YEAR": "Akad. Jahr 2023/2024",
+            "AGRDATE": "20240717",
+            "AGRTYPE": "Teilleistungsbeurteilung",
+            "AWOBJECT": "P Integrierte Informationssysteme (C)",
+            "AWOBJECT_SHORT": "5CS-ERPS-00",
+            "AWOTYPE": "Studienmodul",
+            "AWSTATUS": "Erfolgreich abgeschlossen",
+            "BOOKDATE": "20240718",
+            "BOOKREASON": "",
+            "CPGRADED": "  0.00000",
+            "CPUNIT": "ECTS-Credits",
+            "GRADESYMBOL": "1,3"
+        }
+    ],
+    "SEMESTER": 7,
+    "UPCOMING": [
+        {
+            "BEGUZ": "090000",
+            "COMMENT": "Prüfung (SEP)",
+            "ENDUZ": "110000",
+            "EVDAT": "20240903",
+            "INSTRUCTOR": "diverse",
+            "LOCATION": "",
+            "OBJID": "00000000",
+            "ROOM": "104 Seminarraum",
+            "SINSTRUCTOR": "",
+            "SM_SHORT": "5CS-MEDIT-00",
+            "SM_STEXT": "P Medizinisches Informationsmanagem. (K)",
+            "SROOM": "5SR 104"
+        },
+        {
+            "BEGUZ": "090000",
+            "COMMENT": "Prüfung (SEP)",
+            "ENDUZ": "100000",
+            "EVDAT": "20240905",
+            "INSTRUCTOR": "Prof. Dr. Paar, Prof. Dr. Siegmund",
+            "LOCATION": "",
+            "OBJID": "00000000",
+            "ROOM": "",
+            "SINSTRUCTOR": "",
+            "SM_SHORT": "5CS-V3DA-01",
+            "SM_STEXT": "P1 Videotech., 3D-Modell. u. Animat. (K)",
+            "SROOM": ""
+        },
+        {
+            "BEGUZ": "080000",
+            "COMMENT": "Prüfung (SEP)",
+            "ENDUZ": "000000",
+            "EVDAT": "20240910",
+            "INSTRUCTOR": "diverse",
+            "LOCATION": "",
+            "OBJID": "00000000",
+            "ROOM": "104 Seminarraum",
+            "SINSTRUCTOR": "",
+            "SM_SHORT": "5CS-V3DA-02",
+            "SM_STEXT": "P2 Videotech., 3D-Modell. u. Animat. (P)",
+            "SROOM": "5SR 104"
+        },
+        {
+            "BEGUZ": "080000",
+            "COMMENT": "Prüfung (SEP)",
+            "ENDUZ": "000000",
+            "EVDAT": "20240912",
+            "INSTRUCTOR": "diverse",
+            "LOCATION": "",
+            "OBJID": "00000000",
+            "ROOM": "104 Seminarraum",
+            "SINSTRUCTOR": "",
+            "SM_SHORT": "5CS-STDS-02",
+            "SM_STEXT": "P2 Servers. Techn. u. vert. Systeme (P)",
+            "SROOM": "5SR 104"
+        },
+        {
+            "BEGUZ": "080000",
+            "COMMENT": "Prüfung (SEP)",
+            "ENDUZ": "000000",
+            "EVDAT": "20240912",
+            "INSTRUCTOR": "diverse",
+            "LOCATION": "",
+            "OBJID": "00000000",
+            "ROOM": "104 Seminarraum",
+            "SINSTRUCTOR": "",
+            "SM_SHORT": "5CS-STDS-01",
+            "SM_STEXT": "P1 Servers. Techn. u. vert. Systeme (SE)",
+            "SROOM": "5SR 104"
+        },
+        {
+            "BEGUZ": "130000",
+            "COMMENT": "Prüfung (SEP)",
+            "ENDUZ": "000000",
+            "EVDAT": "20240926",
+            "INSTRUCTOR": "Prof. Dr. Paar",
+            "LOCATION": "",
+            "OBJID": "00000000",
+            "ROOM": "104 Seminarraum",
+            "SINSTRUCTOR": "",
+            "SM_SHORT": "5CS-BACS-00",
+            "SM_STEXT": "P Bachelorarbeit SG Informatik",
+            "SROOM": "5SR 104"
+        }
+    ]
+}"#;
+    let resp: CampusReminders = serde_json::from_str(json).unwrap();
 
     Ok(Json(resp))
 }
@@ -1212,36 +1310,158 @@ pub async fn get_timeline(
 ) -> Result<Json<ExportTimelineEvents>, ResponseError> {
     sleep_some().await;
 
-    let export_events = ExportTimelineEvents {
-        fachsemester: vec![ExportTimelineEvent {
-            name: "Fachsemester".to_string(),
-            description: "Ja das FS halt".to_string(),
-            color: "#fcbe04".to_string(),
-            start: "gerstenmalz".to_string(),
-            end: "alu gobi".to_string(),
-        }],
-        theoriesemester: vec![ExportTimelineEvent {
-            name: "Fachsemester".to_string(),
-            description: "Ja das FS halt".to_string(),
-            color: "#fcbe04".to_string(),
-            start: "gerstenmalz".to_string(),
-            end: "alu gobi".to_string(),
-        }],
-        praxissemester: vec![ExportTimelineEvent {
-            name: "Fachsemester".to_string(),
-            description: "Ja das FS halt".to_string(),
-            color: "#fcbe04".to_string(),
-            start: "gerstenmalz".to_string(),
-            end: "alu gobi".to_string(),
-        }],
-        specials: vec![ExportTimelineEvent {
-            name: "Fachsemester".to_string(),
-            description: "Ja das FS halt".to_string(),
-            color: "#fcbe04".to_string(),
-            start: "gerstenmalz".to_string(),
-            end: "alu gobi".to_string(),
-        }],
-    };
+    let json = r##"{
+    "fachsemester": [
+        {
+            "name": "1. FS",
+            "description": "1. Fachsemester vom 01.10.2021 bis 27.03.2022",
+            "color": "#fcbe04",
+            "start": "2021-10-01T00:00:00+02:00",
+            "end": "2022-03-27T00:00:00+01:00"
+        },
+        {
+            "name": "2. FS",
+            "description": "2. Fachsemester vom 28.03.2022 bis 25.09.2022",
+            "color": "#fcbe04",
+            "start": "2022-03-28T00:00:00+02:00",
+            "end": "2022-09-25T00:00:00+02:00"
+        },
+        {
+            "name": "3. FS",
+            "description": "3. Fachsemester vom 26.09.2022 bis 26.03.2023",
+            "color": "#fcbe04",
+            "start": "2022-09-26T00:00:00+02:00",
+            "end": "2023-03-26T00:00:00+01:00"
+        },
+        {
+            "name": "4. FS",
+            "description": "4. Fachsemester vom 27.03.2023 bis 24.09.2023",
+            "color": "#fcbe04",
+            "start": "2023-03-27T00:00:00+02:00",
+            "end": "2023-09-24T00:00:00+02:00"
+        },
+        {
+            "name": "5. FS",
+            "description": "5. Fachsemester vom 25.09.2023 bis 24.03.2024",
+            "color": "#fcbe04",
+            "start": "2023-09-25T00:00:00+02:00",
+            "end": "2024-03-24T00:00:00+01:00"
+        },
+        {
+            "name": "6. FS",
+            "description": "6. Fachsemester vom 25.03.2024 bis 30.09.2024",
+            "color": "#fcbe04",
+            "start": "2024-03-25T00:00:00+01:00",
+            "end": "2024-09-30T00:00:00+02:00"
+        }
+    ],
+    "theoriesemester": [
+        {
+            "name": "Theorie",
+            "description": "Theoriephase 1. Fachsemester vom 27.12.2021 bis 27.03.2022",
+            "color": "#0070a3",
+            "start": "2021-12-27T00:00:00+01:00",
+            "end": "2022-03-27T00:00:00+01:00"
+        },
+        {
+            "name": "Theorie",
+            "description": "Theoriephase 2. Fachsemester vom 27.06.2022 bis 25.09.2022",
+            "color": "#0070a3",
+            "start": "2022-06-27T00:00:00+02:00",
+            "end": "2022-09-25T00:00:00+02:00"
+        },
+        {
+            "name": "Theorie",
+            "description": "Theoriephase 3. Fachsemester vom 26.12.2022 bis 26.03.2023",
+            "color": "#0070a3",
+            "start": "2022-12-26T00:00:00+01:00",
+            "end": "2023-03-26T00:00:00+01:00"
+        },
+        {
+            "name": "Theorie",
+            "description": "Theoriephase 4. Fachsemester vom 26.06.2023 bis 24.09.2023",
+            "color": "#0070a3",
+            "start": "2023-06-26T00:00:00+02:00",
+            "end": "2023-09-24T00:00:00+02:00"
+        },
+        {
+            "name": "Theorie",
+            "description": "Theoriephase 5. Fachsemester vom 01.01.2024 bis 24.03.2024",
+            "color": "#0070a3",
+            "start": "2024-01-01T00:00:00+01:00",
+            "end": "2024-03-24T00:00:00+01:00"
+        },
+        {
+            "name": "Theorie",
+            "description": "Theoriephase 6. Fachsemester vom 17.06.2024 bis 15.09.2024",
+            "color": "#0070a3",
+            "start": "2024-06-17T00:00:00+02:00",
+            "end": "2024-09-15T00:00:00+02:00"
+        }
+    ],
+    "praxissemester": [
+        {
+            "name": "Praxis",
+            "description": "Praxisphase 1. Fachsemester vom 01.10.2021 bis 26.12.2021",
+            "color": "#119911",
+            "start": "2021-10-01T00:00:00+02:00",
+            "end": "2021-12-26T00:00:00+01:00"
+        },
+        {
+            "name": "Praxis",
+            "description": "Praxisphase 2. Fachsemester vom 28.03.2022 bis 26.06.2022",
+            "color": "#119911",
+            "start": "2022-03-28T00:00:00+02:00",
+            "end": "2022-06-26T00:00:00+02:00"
+        },
+        {
+            "name": "Praxis",
+            "description": "Praxisphase 3. Fachsemester vom 26.09.2022 bis 25.12.2022",
+            "color": "#119911",
+            "start": "2022-09-26T00:00:00+02:00",
+            "end": "2022-12-25T00:00:00+01:00"
+        },
+        {
+            "name": "Praxis",
+            "description": "Praxisphase 4. Fachsemester vom 27.03.2023 bis 25.06.2023",
+            "color": "#119911",
+            "start": "2023-03-27T00:00:00+02:00",
+            "end": "2023-06-25T00:00:00+02:00"
+        },
+        {
+            "name": "Praxis",
+            "description": "Praxisphase 5. Fachsemester vom 25.09.2023 bis 31.12.2023",
+            "color": "#119911",
+            "start": "2023-09-25T00:00:00+02:00",
+            "end": "2023-12-31T00:00:00+01:00"
+        },
+        {
+            "name": "Praxis",
+            "description": "Praxisphase 6. Fachsemester vom 25.03.2024 bis 16.06.2024",
+            "color": "#119911",
+            "start": "2024-03-25T00:00:00+01:00",
+            "end": "2024-06-16T00:00:00+02:00"
+        },
+        {
+            "name": "Praxis",
+            "description": "Praxisphase 6. Fachsemester vom 16.09.2024 bis 30.09.2024",
+            "color": "#119911",
+            "start": "2024-09-16T00:00:00+02:00",
+            "end": "2024-09-30T00:00:00+02:00"
+        }
+    ],
+    "specials": [
+        {
+            "name": "Verteidigung Abschlussarbeit",
+            "description": "Die Verteidigungen der Abschlussarbeiten (Bachelor oder Diplom) finden voraussichtlich im Zeitraum vom 23.09.2024 bis zum 30.09.2024 statt.",
+            "color": "#880000",
+            "start": "2024-09-23T00:00:00+02:00",
+            "end": "2024-09-30T00:00:00+02:00"
+        }
+    ]
+}"##;
+
+    let export_events: ExportTimelineEvents = serde_json::from_str(json).unwrap();
 
     Ok(Json(export_events))
 }

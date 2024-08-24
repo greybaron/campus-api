@@ -126,9 +126,7 @@ pub async fn authorize(mut req: Request, next: Next) -> Result<Response<Body>, R
     Ok(next.run(req).await)
 }
 
-pub async fn sign_in(
-    Json(_): Json<CampusLoginData>,
-) -> Result<Json<LoginResponse>, StatusCode> {
+pub async fn sign_in(Json(_): Json<CampusLoginData>) -> Result<Json<LoginResponse>, StatusCode> {
     let cd_auth_data = CdAuthData {
         cookie: "linseneintopf".to_string(),
         hash: "basmatireis".to_string(),
