@@ -11,11 +11,14 @@ use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, Header, TokenData, Validation};
 use serde_json::json;
 
-use crate::types::{LoginResponse, UserBasicInfo};
 use crate::{
     constants::{JWT_DEC_KEY, JWT_ENC_KEY},
     encryption::{decrypt, encrypt},
     types::{CampusLoginData, CdAuthData, Claims, ResponseError},
+};
+use crate::{
+    services::sleep_some,
+    types::{LoginResponse, UserBasicInfo},
 };
 
 impl IntoResponse for ResponseError {
@@ -127,6 +130,7 @@ pub async fn authorize(mut req: Request, next: Next) -> Result<Response<Body>, R
 }
 
 pub async fn sign_in(Json(_): Json<CampusLoginData>) -> Result<Json<LoginResponse>, StatusCode> {
+    sleep_some().await;
     let cd_auth_data = CdAuthData {
         cookie: "linseneintopf".to_string(),
         hash: "basmatireis".to_string(),
