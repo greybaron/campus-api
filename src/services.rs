@@ -1,10 +1,13 @@
-use axum::{Extension, Json};
+use axum::{extract::State, Extension, Json};
 use chrono::{DateTime, Duration, Utc};
 use fnv::FnvHasher;
 use rand::Rng;
 use tokio::time::{sleep, Duration as TokioDuration};
 
-use std::hash::{Hash, Hasher};
+use std::{
+    hash::{Hash, Hasher},
+    sync::Arc,
+};
 
 use crate::{
     color_stuff::hex_to_luminance,
@@ -12,7 +15,7 @@ use crate::{
         CampusDualGrade, CampusDualSignupOption, CampusDualVerfahrenOption, CampusReminders,
         CampusTimelineEvent, CdAuthData, CdExamDetails, CdExamStats, ExamRegistrationMetadata,
         ExportTimelineEvent, ExportTimelineEvents, GradeStatsAllStudents, LoginResponse,
-        ResponseError, StundenplanItem, SubGradeMetadata,
+        ResponseError, SimulatedState, StundenplanItem, SubGradeMetadata,
     },
 };
 
@@ -912,11 +915,15 @@ pub async fn check_revive_session(
 }
 
 pub async fn get_examsignup(
+    State(state): State<Arc<SimulatedState>>,
     Extension(_): Extension<CdAuthData>,
 ) -> Result<Json<Vec<CampusDualSignupOption>>, ResponseError> {
+    let stds_signup_state = *state.stds_signup_state.lock().unwrap();
+
     sleep_some().await;
-    let signup_options = vec![
-        CampusDualSignupOption {
+    let mut signup_options = vec![];
+    if !stds_signup_state {
+        signup_options.push(CampusDualSignupOption {
             name: "P1 Servers. Techn. u. vert. Systeme (SE) (5CS-STDS-01)".to_string(),
             verfahren: "SEP".to_string(),
             pruefart: "Sommersemester".to_string(),
@@ -933,30 +940,32 @@ pub async fn get_examsignup(
                 perid: "".to_string(),
                 offerno: "".to_string(),
             }),
-        },
-        CampusDualSignupOption {
-            name: "P Bachelorarbeit SG Informatik (5CS-BACS-00)".to_string(),
-            verfahren: "SEP".to_string(),
-            pruefart: "Sommersemester".to_string(),
-            status: "🚫".to_string(),
-            signup_information: "Prüfungsart: BATH".to_string(),
-            exam_date: Some("32.12.2024".to_string()),
-            exam_time: Some("12:34".to_string()),
-            exam_room: Some("Ort: 5SR 104".to_string()),
-            warning_message: Some("Anmeldung war nur noch bis gestern möglich.".to_string()),
-            signup_until: Some("31.12.2024".to_string()),
-            internal_metadata: None,
-        },
-    ];
+        })
+    }
+    signup_options.push(CampusDualSignupOption {
+        name: "P Bachelorarbeit SG Informatik (5CS-BACS-00)".to_string(),
+        verfahren: "SEP".to_string(),
+        pruefart: "Sommersemester".to_string(),
+        status: "🚫".to_string(),
+        signup_information: "Prüfungsart: BATH".to_string(),
+        exam_date: Some("32.12.2024".to_string()),
+        exam_time: Some("12:34".to_string()),
+        exam_room: Some("Ort: 5SR 104".to_string()),
+        warning_message: Some("Anmeldung war nur noch bis gestern möglich.".to_string()),
+        signup_until: Some("31.12.2024".to_string()),
+        internal_metadata: None,
+    });
 
     Ok(Json(signup_options))
 }
 
 pub async fn post_registerexam(
+    State(state): State<Arc<SimulatedState>>,
     Extension(_): Extension<CdAuthData>,
     Json(_): Json<ExamRegistrationMetadata>,
 ) -> Result<String, ResponseError> {
     sleep_some().await;
+    *state.stds_signup_state.lock().unwrap() = true;
     Ok("{}".to_string())
 }
 
@@ -998,28 +1007,34 @@ pub async fn get_examdetails(
 }
 
 pub async fn post_cancelexam(
+    State(state): State<Arc<SimulatedState>>,
     Extension(_): Extension<CdAuthData>,
     Json(_): Json<ExamRegistrationMetadata>,
 ) -> Result<String, ResponseError> {
     sleep_some().await;
-    Ok("Test-Fehler".to_string())
+    *state.stds_signup_state.lock().unwrap() = false;
+    Ok("{}".to_string())
 }
 
 pub async fn get_examverfahren(
+    State(state): State<Arc<SimulatedState>>,
     Extension(_): Extension<CdAuthData>,
 ) -> Result<Json<Vec<CampusDualVerfahrenOption>>, ResponseError> {
+    let stds_signup_state = *state.stds_signup_state.lock().unwrap();
+
     sleep_some().await;
-    let signup_verfahren = vec![
-        CampusDualVerfahrenOption {
-            name: "Abmeldbare Prüfung".to_string(),
-            verfahren: "Verfahren".to_string(),
-            pruefart: "Prüfungsart".to_string(),
+    let mut signup_verfahren = vec![];
+    if stds_signup_state {
+        signup_verfahren.push(CampusDualVerfahrenOption {
+            name: "P1 Servers. Techn. u. vert. Systeme (SE) (5CS-STDS-01)".to_string(),
+            verfahren: "SEP".to_string(),
+            pruefart: "Sommersemester".to_string(),
             status: "📝".to_string(),
-            signup_information: "Wichtige Info".to_string(),
+            signup_information: "Prüfungsart: MPMA".to_string(),
             exam_date: Some("32.12.2024".to_string()),
             exam_time: Some("12:34".to_string()),
-            exam_room: Some("SSR 123".to_string()),
-            warning_message: Some("Abmeldung war nur noch bis gestern möglich".to_string()),
+            exam_room: Some("Ort: 5SR 104".to_string()),
+            warning_message: Some("Abmeldung ist nur noch bis morgen möglich.".to_string()),
             signoff_until: Some("31.12.2024".to_string()),
             internal_metadata: Some(ExamRegistrationMetadata {
                 assessment: "".to_string(),
@@ -1027,26 +1042,21 @@ pub async fn get_examverfahren(
                 perid: "".to_string(),
                 offerno: "".to_string(),
             }),
-        },
-        CampusDualVerfahrenOption {
-            name: "Andere Prüfung".to_string(),
-            verfahren: "Verfahren".to_string(),
-            pruefart: "Prüfungsart".to_string(),
-            status: "🚫".to_string(),
-            signup_information: "Wichtige Info".to_string(),
-            exam_date: Some("32.12.2024".to_string()),
-            exam_time: Some("12:34".to_string()),
-            exam_room: Some("SSR 123".to_string()),
-            warning_message: Some("Abmeldung war nur noch bis gestern möglich".to_string()),
-            signoff_until: Some("31.12.2024".to_string()),
-            internal_metadata: Some(ExamRegistrationMetadata {
-                assessment: "".to_string(),
-                peryr: "".to_string(),
-                perid: "".to_string(),
-                offerno: "".to_string(),
-            }),
-        },
-    ];
+        });
+    };
+    signup_verfahren.push(CampusDualVerfahrenOption {
+        name: "Andere Prüfung".to_string(),
+        verfahren: "Verfahren".to_string(),
+        pruefart: "Prüfungsart".to_string(),
+        status: "🚫".to_string(),
+        signup_information: "Wichtige Info".to_string(),
+        exam_date: Some("32.12.2024".to_string()),
+        exam_time: Some("12:34".to_string()),
+        exam_room: Some("SSR 123".to_string()),
+        warning_message: Some("Abmeldung war nur noch bis gestern möglich".to_string()),
+        signoff_until: Some("31.12.2024".to_string()),
+        internal_metadata: None,
+    });
 
     Ok(Json(signup_verfahren))
 }
@@ -1189,12 +1199,15 @@ fn string_to_rgb(input: &str) -> String {
 }
 
 pub async fn get_reminders(
+    State(state): State<Arc<SimulatedState>>,
     Extension(_): Extension<CdAuthData>,
 ) -> Result<Json<CampusReminders>, ResponseError> {
     sleep_some().await;
-    let json = r#"{
+    let json = match *state.stds_signup_state.lock().unwrap() {
+        true => {
+            r#"{
     "ELECTIVES": 0,
-    "EXAMS": 1,
+    "EXAMS": 0,
     "LATEST": [
         {
             "ACAD_SESSION": "Sommerperiode",
@@ -1299,7 +1312,106 @@ pub async fn get_reminders(
             "SROOM": "5SR 104"
         }
     ]
-}"#;
+}"#
+        }
+        false => {
+            r#"{
+    "ELECTIVES": 0,
+    "EXAMS": 1,
+    "LATEST": [
+        {
+            "ACAD_SESSION": "Sommerperiode",
+            "ACAD_YEAR": "Akad. Jahr 2023/2024",
+            "AGRDATE": "20240717",
+            "AGRTYPE": "Teilleistungsbeurteilung",
+            "AWOBJECT": "P Integrierte Informationssysteme (C)",
+            "AWOBJECT_SHORT": "5CS-ERPS-00",
+            "AWOTYPE": "Studienmodul",
+            "AWSTATUS": "Erfolgreich abgeschlossen",
+            "BOOKDATE": "20240718",
+            "BOOKREASON": "",
+            "CPGRADED": "  0.00000",
+            "CPUNIT": "ECTS-Credits",
+            "GRADESYMBOL": "1,3"
+        }
+    ],
+    "SEMESTER": 7,
+    "UPCOMING": [
+        {
+            "BEGUZ": "090000",
+            "COMMENT": "Prüfung (SEP)",
+            "ENDUZ": "110000",
+            "EVDAT": "20240903",
+            "INSTRUCTOR": "diverse",
+            "LOCATION": "",
+            "OBJID": "00000000",
+            "ROOM": "104 Seminarraum",
+            "SINSTRUCTOR": "",
+            "SM_SHORT": "5CS-MEDIT-00",
+            "SM_STEXT": "P Medizinisches Informationsmanagem. (K)",
+            "SROOM": "5SR 104"
+        },
+        {
+            "BEGUZ": "090000",
+            "COMMENT": "Prüfung (SEP)",
+            "ENDUZ": "100000",
+            "EVDAT": "20240905",
+            "INSTRUCTOR": "Prof. Dr. Paar, Prof. Dr. Siegmund",
+            "LOCATION": "",
+            "OBJID": "00000000",
+            "ROOM": "",
+            "SINSTRUCTOR": "",
+            "SM_SHORT": "5CS-V3DA-01",
+            "SM_STEXT": "P1 Videotech., 3D-Modell. u. Animat. (K)",
+            "SROOM": ""
+        },
+        {
+            "BEGUZ": "080000",
+            "COMMENT": "Prüfung (SEP)",
+            "ENDUZ": "000000",
+            "EVDAT": "20240910",
+            "INSTRUCTOR": "diverse",
+            "LOCATION": "",
+            "OBJID": "00000000",
+            "ROOM": "104 Seminarraum",
+            "SINSTRUCTOR": "",
+            "SM_SHORT": "5CS-V3DA-02",
+            "SM_STEXT": "P2 Videotech., 3D-Modell. u. Animat. (P)",
+            "SROOM": "5SR 104"
+        },
+        {
+            "BEGUZ": "080000",
+            "COMMENT": "Prüfung (SEP)",
+            "ENDUZ": "000000",
+            "EVDAT": "20240912",
+            "INSTRUCTOR": "diverse",
+            "LOCATION": "",
+            "OBJID": "00000000",
+            "ROOM": "104 Seminarraum",
+            "SINSTRUCTOR": "",
+            "SM_SHORT": "5CS-STDS-01",
+            "SM_STEXT": "P1 Servers. Techn. u. vert. Systeme (SE)",
+            "SROOM": "5SR 104"
+        },
+        {
+            "BEGUZ": "130000",
+            "COMMENT": "Prüfung (SEP)",
+            "ENDUZ": "000000",
+            "EVDAT": "20240926",
+            "INSTRUCTOR": "Prof. Dr. Paar",
+            "LOCATION": "",
+            "OBJID": "00000000",
+            "ROOM": "104 Seminarraum",
+            "SINSTRUCTOR": "",
+            "SM_SHORT": "5CS-BACS-00",
+            "SM_STEXT": "P Bachelorarbeit SG Informatik",
+            "SROOM": "5SR 104"
+        }
+    ]
+}"#
+        }
+    };
+
     let resp: CampusReminders = serde_json::from_str(json).unwrap();
 
     Ok(Json(resp))

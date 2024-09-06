@@ -21,6 +21,11 @@ use crate::{
 };
 
 pub async fn app() -> Router {
+    // simulate state by allowing STDs signup
+    let shared_state = std::sync::Arc::new(crate::types::SimulatedState {
+        stds_signup_state: std::sync::Mutex::new(false),
+    });
+
     // Bucket rate limiting:
     // Budget of 20 requests
     // Each request consumes 1 budget
@@ -66,15 +71,20 @@ pub async fn app() -> Router {
         .route("/get_grades", get(services::get_grades))
         .route("/get_gradestats", post(services::get_gradestats))
         .route("/get_examsignup", get(services::get_examsignup))
+        .with_state(shared_state.clone())
         .route("/registerexam", post(services::post_registerexam))
+        .with_state(shared_state.clone())
         .route("/get_examdetails", post(services::get_examdetails))
         .route("/cancelexam", post(services::post_cancelexam))
+        .with_state(shared_state.clone())
         .route("/get_examverfahren", get(services::get_examverfahren))
+        .with_state(shared_state.clone())
         .route("/get_ects", get(services::get_ects))
         .route("/get_fachsem", get(services::get_fachsem))
         .route("/get_examstats", get(services::get_examstats))
         .route("/get_stundenplan", get(services::get_stundenplan))
         .route("/get_reminders", get(services::get_reminders))
+        .with_state(shared_state.clone())
         .route("/get_timeline", get(services::get_timeline))
         // apply auth and jwt rate limiting to all previous (jwt is only stored as hash)
         .layer(GovernorLayer {
