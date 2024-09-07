@@ -1080,9 +1080,9 @@ pub async fn get_examstats(
     // farben: ["#0070a3", "#4297d7", "#fcbe04"]
 
     let resp = CdExamStats {
-        total: 100,
-        successful: 69,
-        unsuccessful: 31,
+        total: 32,
+        successful: 29,
+        unsuccessful: 3,
         unassessed: 0,
         booked: 0,
         finished: 0,
