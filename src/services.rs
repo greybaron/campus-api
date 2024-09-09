@@ -27,7 +27,7 @@ pub async fn get_grades(
     Extension(cd_auth_data): Extension<CdAuthData>,
 ) -> Result<Json<Vec<CampusDualGrade>>, ResponseError> {
     let now = Instant::now();
-    let client = get_client_with_cd_cookie(cd_auth_data.cookie)?;
+    let client = get_client_with_cd_cookie(true, cd_auth_data.cookie)?;
     println!("Time to get client: {:.2?}", now.elapsed());
 
     let now = Instant::now();
@@ -53,7 +53,7 @@ pub async fn get_gradestats(
     Extension(cd_auth_data): Extension<CdAuthData>,
     Json(subgrade_meta): Json<SubGradeMetadata>,
 ) -> Result<Json<GradeStatsAllStudents>, ResponseError> {
-    let client = get_client_with_cd_cookie(cd_auth_data.cookie)?;
+    let client = get_client_with_cd_cookie(true, cd_auth_data.cookie)?;
 
     let grade_stats: Vec<CdGradeStatEntry> = client
         .get(format!(
@@ -89,7 +89,7 @@ pub async fn check_revive_session(
 ) -> Result<Json<Option<LoginResponse>>, ResponseError> {
     println!("checking session...");
 
-    let client = get_client_with_cd_cookie(cd_auth_data.cookie)?;
+    let client = get_client_with_cd_cookie(false, cd_auth_data.cookie)?;
 
     let resp = client
         .get("https://erp.campus-dual.de/sap/bc/webdynpro/sap/zba_initss?sap-client=100&sap-language=de&uri=https://selfservice.campus-dual.de/index/login")
@@ -127,7 +127,7 @@ pub async fn check_revive_session(
 pub async fn get_examsignup(
     Extension(cd_auth_data): Extension<CdAuthData>,
 ) -> Result<Json<Vec<CampusDualSignupOption>>, ResponseError> {
-    let client = get_client_with_cd_cookie(cd_auth_data.cookie)?;
+    let client = get_client_with_cd_cookie(true, cd_auth_data.cookie)?;
     let exam_signup_html = client
         .get("https://selfservice.campus-dual.de/acwork/expproc")
         .send()
@@ -145,7 +145,7 @@ pub async fn post_registerexam(
     Extension(cd_auth_data): Extension<CdAuthData>,
     Json(examregist_meta): Json<ExamRegistrationMetadata>,
 ) -> Result<String, ResponseError> {
-    let client = get_client_default();
+    let client = get_client_default(true)?;
     let exam_regist_resp = client
         .get(format!(
             "https://selfservice.campus-dual.de/acwork/registerexam?userid={}&assessment={}&peryr={}&perid={}&offerno={}&hash={}",
@@ -167,7 +167,7 @@ pub async fn get_examdetails(
     Extension(cd_auth_data): Extension<CdAuthData>,
     Json(examregist_meta): Json<ExamRegistrationMetadata>,
 ) -> Result<Json<CdExamDetails>, ResponseError> {
-    let client = get_client_default();
+    let client = get_client_default(true)?;
     let mut exam_details: CdExamDetails = client
         .get(format!(
             "https://selfservice.campus-dual.de/acwork/offerdetail?user={}&objidexm=undefined&evob_objid={}&peryr={}&perid={}&offerno={}",
@@ -206,7 +206,7 @@ pub async fn post_cancelexam(
     Extension(cd_auth_data): Extension<CdAuthData>,
     Json(examregist_meta): Json<ExamRegistrationMetadata>,
 ) -> Result<String, ResponseError> {
-    let client = get_client_default();
+    let client = get_client_default(true)?;
     let exam_regist_resp = client
         .get(format!(
             "https://selfservice.campus-dual.de/acwork/cancelexam?userid={}&objid={}&hash={}",
@@ -222,7 +222,7 @@ pub async fn post_cancelexam(
 pub async fn get_examverfahren(
     Extension(cd_auth_data): Extension<CdAuthData>,
 ) -> Result<Json<Vec<CampusDualVerfahrenOption>>, ResponseError> {
-    let client = get_client_with_cd_cookie(cd_auth_data.cookie)?;
+    let client = get_client_with_cd_cookie(true, cd_auth_data.cookie)?;
     let exam_verfahren_html = client
         .get("https://selfservice.campus-dual.de/acwork/cancelproc")
         .send()
@@ -239,7 +239,7 @@ pub async fn get_examverfahren(
 pub async fn get_ects(
     Extension(cd_authdata): Extension<CdAuthData>,
 ) -> Result<String, ResponseError> {
-    let client = get_client_default();
+    let client = get_client_default(true)?;
 
     let user = cd_authdata.user;
     let hash = cd_authdata.hash;
@@ -261,7 +261,7 @@ pub async fn get_ects(
 pub async fn get_fachsem(
     Extension(cd_authdata): Extension<CdAuthData>,
 ) -> Result<String, ResponseError> {
-    let client = get_client_default();
+    let client = get_client_default(true)?;
 
     let user = cd_authdata.user;
     let hash = cd_authdata.hash;
@@ -296,7 +296,7 @@ pub async fn get_examstats(
     // daten/partitionen: ['erfolgreich', 0], ['nicht bestanden', 0], ['gebucht', 0]
     // farben: ["#0070a3", "#4297d7", "#fcbe04"]
 
-    let client = get_client_default();
+    let client = get_client_default(true)?;
 
     let user = cd_authdata.user;
     let hash = cd_authdata.hash;
@@ -317,7 +317,7 @@ pub async fn get_examstats(
 pub async fn get_stundenplan(
     Extension(cd_authdata): Extension<CdAuthData>,
 ) -> Result<Json<Vec<StundenplanItem>>, ResponseError> {
-    let client = get_client_default();
+    let client = get_client_default(true)?;
 
     let user = cd_authdata.user;
     let hash = cd_authdata.hash;
@@ -371,7 +371,7 @@ fn string_to_rgb(input: &str) -> String {
 pub async fn get_reminders(
     Extension(cd_authdata): Extension<CdAuthData>,
 ) -> Result<Json<CampusReminders>, ResponseError> {
-    let client = get_client_default();
+    let client = get_client_default(true)?;
 
     let user = cd_authdata.user;
     let hash = cd_authdata.hash;
@@ -392,7 +392,7 @@ pub async fn get_reminders(
 pub async fn get_timeline(
     Extension(cd_authdata): Extension<CdAuthData>,
 ) -> Result<Json<ExportTimelineEvents>, ResponseError> {
-    let client = get_client_default();
+    let client = get_client_default(true)?;
     let resp: CampusTimeline = client
         .get(format!(
             "https://selfservice.campus-dual.de/dash/gettimeline?user={}",

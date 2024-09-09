@@ -7,6 +7,8 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use reqwest::Url;
 use reqwest_cookie_store::CookieStoreMutex;
+use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
+use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use scraper::{selectable::Selectable, Html, Selector};
 
 use crate::{
@@ -17,15 +19,29 @@ use crate::{
     },
 };
 
-pub fn get_client_default() -> reqwest::Client {
-    reqwest::ClientBuilder::new()
-        .add_root_certificate(CD_CERT_PEM.get().unwrap().clone())
-        .use_rustls_tls()
-        .build()
-        .unwrap()
+pub fn get_client_default(retry: bool) -> Result<ClientWithMiddleware> {
+    let retries = if retry { 2 } else { 0 };
+
+    let retry_policy = ExponentialBackoff::builder().build_with_max_retries(retries);
+    Ok(ClientBuilder::new(
+        reqwest::Client::builder()
+            .add_root_certificate(CD_CERT_PEM.get().unwrap().clone())
+            .use_rustls_tls()
+            .build()?,
+    )
+    .with(RetryTransientMiddleware::new_with_policy(retry_policy))
+    .build())
+
+    // reqwest::ClientBuilder::new()
+    //     .add_root_certificate(CD_CERT_PEM.get().unwrap().clone())
+    //     .use_rustls_tls()
+    //     .build()
+    //     .unwrap();
 }
 
-pub fn get_client_with_cd_cookie(j_cookie: String) -> Result<reqwest::Client> {
+pub fn get_client_with_cd_cookie(retry: bool, j_cookie: String) -> Result<ClientWithMiddleware> {
+    let retries = if retry { 2 } else { 0 };
+
     let cookie: cookie_store::Cookie = serde_json::from_str(&j_cookie)?;
     let cookie_store = Arc::new(CookieStoreMutex::new(CookieStore::new(None)));
     {
@@ -33,10 +49,28 @@ pub fn get_client_with_cd_cookie(j_cookie: String) -> Result<reqwest::Client> {
         store.insert(cookie, &Url::parse("https://campus-dual.de")?)?;
     }
 
-    Ok(reqwest::Client::builder()
-        .add_root_certificate(CD_CERT_PEM.get().unwrap().clone())
-        .cookie_provider(cookie_store)
-        .build()?)
+    let retry_policy = ExponentialBackoff::builder().build_with_max_retries(retries);
+    Ok(ClientBuilder::new(
+        reqwest::Client::builder()
+            .add_root_certificate(CD_CERT_PEM.get().unwrap().clone())
+            .cookie_provider(cookie_store)
+            .use_rustls_tls()
+            .build()?,
+    )
+    .with(RetryTransientMiddleware::new_with_policy(retry_policy))
+    .build())
+
+    // let cookie: cookie_store::Cookie = serde_json::from_str(&j_cookie)?;
+    // let cookie_store = Arc::new(CookieStoreMutex::new(CookieStore::new(None)));
+    // {
+    //     let mut store = cookie_store.lock().unwrap();
+    //     store.insert(cookie, &Url::parse("https://campus-dual.de")?)?;
+    // }
+
+    // Ok(reqwest::Client::builder()
+    //     .add_root_certificate(CD_CERT_PEM.get().unwrap().clone())
+    //     .cookie_provider(cookie_store)
+    //     .build()?)
 }
 
 pub fn extract_grades(html_text: String) -> Result<Vec<CampusDualGrade>> {

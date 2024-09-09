@@ -46,6 +46,15 @@ impl From<reqwest::Error> for ResponseError {
     }
 }
 
+impl From<reqwest_middleware::Error> for ResponseError {
+    fn from(_: reqwest_middleware::Error) -> Self {
+        ResponseError {
+            message: "Internal Server Error".to_string(),
+            status_code: StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+}
+
 impl From<serde_json::Error> for ResponseError {
     fn from(_: serde_json::Error) -> Self {
         ResponseError {
