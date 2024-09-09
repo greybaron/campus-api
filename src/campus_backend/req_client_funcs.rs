@@ -143,6 +143,47 @@ pub fn extract_grades(html_text: String) -> Result<Vec<CampusDualGrade>> {
         });
     }
 
+    // get teilpruefungen
+    let teilpruefung_toplevel_selector = Selector::parse(".child-of-node-1000").unwrap();
+    for line in table.select(&teilpruefung_toplevel_selector) {
+        let content_selector = &Selector::parse("td").unwrap();
+        let mut content = line.select(content_selector);
+        let name = content.next().unwrap().text().next().unwrap().trim();
+        let grade = content.next().unwrap().text().next().unwrap();
+
+        let total_passed_sel = Selector::parse("img").unwrap();
+        let total_passed_el_opt = &content.next().unwrap().select(&total_passed_sel).next();
+
+        let total_passed = total_passed_el_opt
+            .as_ref()
+            .map(|passed_el| passed_el.value().attr("src").unwrap().contains("green.png"));
+        let beurteilung = content.nth(1).unwrap().text().next().unwrap().to_string();
+        let bekanntgabe = content.next().unwrap().text().next().unwrap().to_string();
+
+        let credit_points = 0;
+        let akad_period = content.nth(1).unwrap().text().next().unwrap().to_string();
+
+        let subgrades = vec![CampusDualSubGrade {
+            name: name.to_string(),
+            grade: grade.to_string(),
+            passed: total_passed,
+            beurteilung,
+            bekanntgabe,
+            wiederholung: None,
+            akad_period: akad_period.clone(),
+            internal_metadata: None,
+        }];
+
+        grades.push(CampusDualGrade {
+            name: name.to_string(),
+            grade: grade.to_string(),
+            total_passed,
+            credit_points,
+            akad_period,
+            subgrades,
+        });
+    }
+
     grades.sort_by(|grade_a, grade_b| {
         get_newest_subgrade_date(grade_b).cmp(&get_newest_subgrade_date(grade_a))
     });
