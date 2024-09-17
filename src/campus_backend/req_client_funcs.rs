@@ -15,7 +15,7 @@ use crate::{
     constants::CD_CERT_PEM,
     types::{
         CampusDualGrade, CampusDualSignupOption, CampusDualSubGrade, CampusDualVerfahrenOption,
-        ExamRegistrationMetadata, SubGradeMetadata,
+        ExamRegistrationMetadata, GradeResultsTableType, SubGradeMetadata,
     },
 };
 
@@ -31,12 +31,6 @@ pub fn get_client_default(retry: bool) -> Result<ClientWithMiddleware> {
     )
     .with(RetryTransientMiddleware::new_with_policy(retry_policy))
     .build())
-
-    // reqwest::ClientBuilder::new()
-    //     .add_root_certificate(CD_CERT_PEM.get().unwrap().clone())
-    //     .use_rustls_tls()
-    //     .build()
-    //     .unwrap();
 }
 
 pub fn get_client_with_cd_cookie(retry: bool, j_cookie: String) -> Result<ClientWithMiddleware> {
@@ -59,117 +53,122 @@ pub fn get_client_with_cd_cookie(retry: bool, j_cookie: String) -> Result<Client
     )
     .with(RetryTransientMiddleware::new_with_policy(retry_policy))
     .build())
-
-    // let cookie: cookie_store::Cookie = serde_json::from_str(&j_cookie)?;
-    // let cookie_store = Arc::new(CookieStoreMutex::new(CookieStore::new(None)));
-    // {
-    //     let mut store = cookie_store.lock().unwrap();
-    //     store.insert(cookie, &Url::parse("https://campus-dual.de")?)?;
-    // }
-
-    // Ok(reqwest::Client::builder()
-    //     .add_root_certificate(CD_CERT_PEM.get().unwrap().clone())
-    //     .cookie_provider(cookie_store)
-    //     .build()?)
 }
 
 pub fn extract_grades(html_text: String) -> Result<Vec<CampusDualGrade>> {
+    lazy_static! {
+        static ref IMG_SEL: Selector = Selector::parse("img").unwrap();
+        static ref TABLE_SEL: Selector = Selector::parse("#acwork tbody").unwrap();
+        static ref NORMAL_MODULE_SEL: Selector = Selector::parse(".child-of-node-0").unwrap();
+        static ref TEILPRUEFUNG_SEL: Selector = Selector::parse(".child-of-node-1000").unwrap();
+        static ref TD_SEL: Selector = Selector::parse("td").unwrap();
+        static ref METADATA_SEL: Selector = Selector::parse("td>div#mscore>a").unwrap();
+    };
+
     let mut grades = Vec::new();
 
     let document = Html::parse_document(&html_text);
     let table = document
-        .select(&Selector::parse("#acwork tbody").unwrap())
+        .select(&TABLE_SEL)
         .next()
         .context("CD grades page: #acwork tbody missing")?;
-    let top_level_line_selector = Selector::parse(".child-of-node-0").unwrap();
-    let top_level_lines = table.select(&top_level_line_selector);
-    for line in top_level_lines {
+
+    let normal_module_lines = table.select(&NORMAL_MODULE_SEL);
+    for line in normal_module_lines {
         let l_id = line
             .value()
             .attr("id")
             .context("CD: grades table line has no ID")?;
-        let content_selector = &Selector::parse("td").unwrap();
-        let mut content = line.select(content_selector);
-        let name = content.next().unwrap().text().next().unwrap();
-        let grade = content.next().unwrap().text().next().unwrap();
+        let mut content = line.select(&TD_SEL);
+        let table_fields = GradeResultsTableType::from(&mut content);
 
-        let total_passed_sel = Selector::parse("img").unwrap();
-        let total_passed_el_opt = &content.next().unwrap().select(&total_passed_sel).next();
+        let name = table_fields.name_el.text().next().unwrap().to_string();
+        let grade = table_fields.grade_el.text().next().unwrap().to_string();
+        let total_passed_el_opt = table_fields.passed_el.select(&IMG_SEL).next();
 
         let total_passed = total_passed_el_opt
             .as_ref()
             .map(|passed_el| passed_el.value().attr("src").unwrap().contains("green.png"));
 
-        let credit_points = content
-            .next()
-            .unwrap()
+        let credit_points = table_fields
+            .ects_el
             .text()
             .next()
             .unwrap()
             .trim_start()
             .parse::<i32>()
             .unwrap_or_default();
-        let akad_period = content.nth(3).unwrap().text().next().unwrap().to_string();
-
-        let subline_selector = &Selector::parse(&format!(".child-of-{}", l_id)).unwrap();
-        let subgrade_elements = table.select(subline_selector);
+        let akad_period = table_fields
+            .akad_period_el
+            .text()
+            .next()
+            .unwrap()
+            .to_string();
 
         let mut subgrades: Vec<CampusDualSubGrade> = Vec::new();
-        for subline in subgrade_elements {
-            let content_selector = &Selector::parse("td").unwrap();
-            let mut content = subline.select(content_selector);
-            let sub_name = content
-                .next()
-                .unwrap()
-                .text()
-                .next()
-                .unwrap()
-                .trim_start()
-                .to_string();
-            let sub_grade = content.next().unwrap().text().next().unwrap();
+        for grade_subgrade_line in
+            table.select(&Selector::parse(&format!(".child-of-{}", l_id)).unwrap())
+        {
+            let mut content = grade_subgrade_line.select(&TD_SEL);
+            let sub_table_fields = GradeResultsTableType::from(&mut content);
 
-            let passed_sel = Selector::parse("img").unwrap();
-            let passed_el_opt = &content.next().unwrap().select(&passed_sel).next();
-            let passed = passed_el_opt
-                .as_ref()
-                .map(|passed_el| passed_el.value().attr("src").unwrap().contains("green.png"));
+            let sub_grade = CampusDualSubGrade {
+                name: sub_table_fields
+                    .name_el
+                    .text()
+                    .next()
+                    .unwrap()
+                    .trim_start()
+                    .to_string(),
+                grade: table_fields.grade_el.text().next().unwrap().to_string(),
+                passed: sub_table_fields
+                    .passed_el
+                    .select(&IMG_SEL)
+                    .next()
+                    .as_ref()
+                    .map(|passed_el| passed_el.value().attr("src").unwrap().contains("green.png")),
+                beurteilung: sub_table_fields
+                    .beurteilung_el
+                    .text()
+                    .next()
+                    .unwrap()
+                    .to_string(),
+                bekanntgabe: sub_table_fields
+                    .bekanntgabe_el
+                    .text()
+                    .next()
+                    .unwrap()
+                    .to_string(),
+                wiederholung: sub_table_fields
+                    .wiederholung_el
+                    .text()
+                    .next()
+                    .map(|s| s.to_string()),
+                akad_period: sub_table_fields
+                    .akad_period_el
+                    .text()
+                    .next()
+                    .unwrap()
+                    .to_string(),
+                internal_metadata: grade_subgrade_line.select(&METADATA_SEL).next().and_then(
+                    |internal_metadata| {
+                        let module = internal_metadata.attr("data-module")?;
+                        let peryr = internal_metadata.attr("data-peryr")?;
+                        let perid = internal_metadata.attr("data-perid")?;
 
-            let beurteilung = content.nth(1).unwrap().text().next().unwrap().to_string();
-            let bekanntgabe = content.next().unwrap().text().next().unwrap().to_string();
-            let wiederholung = content.next().unwrap().text().next().map(|s| s.to_string());
-            let akad_period = content.next().unwrap().text().next().unwrap().to_string();
-
-            let internal_metadata_opt = subline
-                .select(&Selector::parse("td>div#mscore>a").unwrap())
-                .next();
-
-            let internal_metadata = internal_metadata_opt.and_then(|internal_metadata| {
-                let module = internal_metadata.attr("data-module")?;
-                let peryr = internal_metadata.attr("data-peryr")?;
-                let perid = internal_metadata.attr("data-perid")?;
-
-                Some(SubGradeMetadata {
-                    module: module.to_string(),
-                    peryr: peryr.to_string(),
-                    perid: perid.to_string(),
-                })
-            });
-
-            let bloat = CampusDualSubGrade {
-                name: sub_name,
-                grade: sub_grade.to_string(),
-                passed,
-                beurteilung,
-                bekanntgabe,
-                wiederholung,
-                akad_period,
-                internal_metadata,
+                        Some(SubGradeMetadata {
+                            module: module.to_string(),
+                            peryr: peryr.to_string(),
+                            perid: perid.to_string(),
+                        })
+                    },
+                ),
             };
-            subgrades.push(bloat);
+            subgrades.push(sub_grade);
         }
         grades.push(CampusDualGrade {
-            name: name.to_string(),
-            grade: grade.to_string(),
+            name,
+            grade,
             total_passed,
             credit_points,
             akad_period,
@@ -178,15 +177,13 @@ pub fn extract_grades(html_text: String) -> Result<Vec<CampusDualGrade>> {
     }
 
     // get teilpruefungen
-    let teilpruefung_toplevel_selector = Selector::parse(".child-of-node-1000").unwrap();
-    for line in table.select(&teilpruefung_toplevel_selector) {
-        let content_selector = &Selector::parse("td").unwrap();
-        let mut content = line.select(content_selector);
+    for teilpruefung_line in table.select(&TEILPRUEFUNG_SEL) {
+        let content_selector = &TD_SEL;
+        let mut content = teilpruefung_line.select(content_selector);
         let name = content.next().unwrap().text().next().unwrap().trim();
         let grade = content.next().unwrap().text().next().unwrap();
 
-        let total_passed_sel = Selector::parse("img").unwrap();
-        let total_passed_el_opt = &content.next().unwrap().select(&total_passed_sel).next();
+        let total_passed_el_opt = &content.next().unwrap().select(&IMG_SEL).next();
 
         let total_passed = total_passed_el_opt
             .as_ref()
@@ -236,19 +233,22 @@ fn get_newest_subgrade_date(grade: &CampusDualGrade) -> NaiveDate {
 }
 
 pub async fn extract_exam_signup_options(html_text: String) -> Result<Vec<CampusDualSignupOption>> {
+    lazy_static! {
+        static ref IMG_SEL: Selector = Selector::parse("img").unwrap();
+        static ref TABLE_SEL: Selector = Selector::parse("#expproc tbody").unwrap();
+        static ref NORMAL_LINE_SEL: Selector = Selector::parse(".child-of-node-0").unwrap();
+        static ref TD_SEL: Selector = Selector::parse("td").unwrap();
+        static ref METADATA_SEL: Selector = Selector::parse("td>a.booking").unwrap();
+    };
+
     let mut signup_options = Vec::new();
 
     let document = Html::parse_document(&html_text);
-    let table = document
-        .select(&Selector::parse("#expproc tbody").unwrap())
-        .next()
-        .unwrap();
-    let top_level_line_selector = Selector::parse(".child-of-node-0").unwrap();
-    let top_level_lines = table.select(&top_level_line_selector);
+    let table = document.select(&TABLE_SEL).next().unwrap();
+    let top_level_lines = table.select(&NORMAL_LINE_SEL);
     for line in top_level_lines {
         let l_id = line.value().attr("id").unwrap();
-        let content_selector = &Selector::parse("td").unwrap();
-        let mut content = line.select(content_selector);
+        let mut content = line.select(&TD_SEL);
 
         let name = content.next().unwrap().text().next().unwrap().to_string();
         let verfahren = content.next().unwrap().text().next().unwrap().to_string();
@@ -258,18 +258,19 @@ pub async fn extract_exam_signup_options(html_text: String) -> Result<Vec<Campus
         let mut sublines = table.select(subline_selector);
         let main_subline = sublines.next().unwrap();
 
-        let internal_metadata = main_subline
-            .select(&Selector::parse("td>a.booking").unwrap())
-            .next()
-            .map(|meta_el| ExamRegistrationMetadata {
-                assessment: meta_el.value().attr("data-evob_objid").unwrap().to_string(),
-                peryr: meta_el.value().attr("data-peryr").unwrap().to_string(),
-                perid: meta_el.value().attr("data-perid").unwrap().to_string(),
-                offerno: meta_el.value().attr("data-offerno").unwrap().to_string(),
-            });
+        let internal_metadata =
+            main_subline
+                .select(&METADATA_SEL)
+                .next()
+                .map(|meta_el| ExamRegistrationMetadata {
+                    assessment: meta_el.value().attr("data-evob_objid").unwrap().to_string(),
+                    peryr: meta_el.value().attr("data-peryr").unwrap().to_string(),
+                    perid: meta_el.value().attr("data-perid").unwrap().to_string(),
+                    offerno: meta_el.value().attr("data-offerno").unwrap().to_string(),
+                });
 
         let status_icon_url = main_subline
-            .select(&Selector::parse("img").unwrap())
+            .select(&IMG_SEL)
             .next()
             .unwrap()
             .value()
@@ -358,19 +359,22 @@ pub async fn extract_exam_signup_options(html_text: String) -> Result<Vec<Campus
 pub async fn extract_exam_verfahren_options(
     html_text: String,
 ) -> Result<Vec<CampusDualVerfahrenOption>> {
+    lazy_static! {
+        static ref IMG_SEL: Selector = Selector::parse("img").unwrap();
+        static ref TABLE_SEL: Selector = Selector::parse("#exopen tbody").unwrap();
+        static ref NORMAL_LINE_SEL: Selector = Selector::parse(".child-of-node-0").unwrap();
+        static ref TD_SEL: Selector = Selector::parse("td").unwrap();
+        static ref METADATA_SEL: Selector = Selector::parse("td>a.booking").unwrap();
+    };
+
     let mut signup_options = Vec::new();
 
     let document = Html::parse_document(&html_text);
-    let table = document
-        .select(&Selector::parse("#exopen tbody").unwrap())
-        .next()
-        .unwrap();
-    let top_level_line_selector = Selector::parse(".child-of-node-0").unwrap();
-    let top_level_lines = table.select(&top_level_line_selector);
+    let table = document.select(&TABLE_SEL).next().unwrap();
+    let top_level_lines = table.select(&NORMAL_LINE_SEL);
     for line in top_level_lines {
         let l_id = line.value().attr("id").unwrap();
-        let content_selector = &Selector::parse("td").unwrap();
-        let mut content = line.select(content_selector);
+        let mut content = line.select(&TD_SEL);
 
         let name = content.next().unwrap().text().next().unwrap().to_string();
         let verfahren = content.next().unwrap().text().next().unwrap().to_string();
@@ -380,18 +384,19 @@ pub async fn extract_exam_verfahren_options(
         let mut sublines = table.select(subline_selector);
         let main_subline = sublines.next().unwrap();
 
-        let internal_metadata = main_subline
-            .select(&Selector::parse("td>a.booking").unwrap())
-            .next()
-            .map(|meta_el| ExamRegistrationMetadata {
-                assessment: meta_el.value().attr("data-evob_objid").unwrap().to_string(),
-                peryr: meta_el.value().attr("data-peryr").unwrap().to_string(),
-                perid: meta_el.value().attr("data-perid").unwrap().to_string(),
-                offerno: meta_el.value().attr("data-offerno").unwrap().to_string(),
-            });
+        let internal_metadata =
+            main_subline
+                .select(&METADATA_SEL)
+                .next()
+                .map(|meta_el| ExamRegistrationMetadata {
+                    assessment: meta_el.value().attr("data-evob_objid").unwrap().to_string(),
+                    peryr: meta_el.value().attr("data-peryr").unwrap().to_string(),
+                    perid: meta_el.value().attr("data-perid").unwrap().to_string(),
+                    offerno: meta_el.value().attr("data-offerno").unwrap().to_string(),
+                });
 
         let status_icon_url = main_subline
-            .select(&Selector::parse("img").unwrap())
+            .select(&IMG_SEL)
             .next()
             .unwrap()
             .value()

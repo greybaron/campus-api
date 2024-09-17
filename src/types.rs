@@ -1,4 +1,5 @@
 use reqwest::StatusCode;
+use scraper::ElementRef;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -332,4 +333,31 @@ pub struct GradeStatsAllStudents {
     pub three: i64,
     pub four: i64,
     pub ronmodus: i64,
+}
+
+#[derive(Debug)]
+pub struct GradeResultsTableType<'a> {
+    pub name_el: ElementRef<'a>,
+    pub grade_el: ElementRef<'a>,
+    pub passed_el: ElementRef<'a>,
+    pub ects_el: ElementRef<'a>,
+    pub beurteilung_el: ElementRef<'a>,
+    pub bekanntgabe_el: ElementRef<'a>,
+    pub wiederholung_el: ElementRef<'a>,
+    pub akad_period_el: ElementRef<'a>,
+}
+
+impl<'a> From<&'a mut scraper::element_ref::Select<'a, 'a>> for GradeResultsTableType<'a> {
+    fn from(iter: &'a mut scraper::element_ref::Select<'a, 'a>) -> GradeResultsTableType<'a> {
+        GradeResultsTableType {
+            name_el: iter.next().unwrap(),
+            grade_el: iter.next().unwrap(),
+            passed_el: iter.next().unwrap(),
+            ects_el: iter.next().unwrap(),
+            beurteilung_el: iter.next().unwrap(),
+            bekanntgabe_el: iter.next().unwrap(),
+            wiederholung_el: iter.next().unwrap(),
+            akad_period_el: iter.next().unwrap(),
+        }
+    }
 }
