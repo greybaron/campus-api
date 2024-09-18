@@ -120,7 +120,7 @@ pub fn extract_grades(html_text: String) -> Result<Vec<CampusDualGrade>> {
                     .unwrap()
                     .trim_start()
                     .to_string(),
-                grade: table_fields.grade_el.text().next().unwrap().to_string(),
+                grade: sub_table_fields.grade_el.text().next().unwrap().to_string(),
                 passed: sub_table_fields
                     .passed_el
                     .select(&IMG_SEL)
