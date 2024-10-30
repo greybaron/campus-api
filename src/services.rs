@@ -393,7 +393,7 @@ pub async fn get_timeline(
     Extension(cd_authdata): Extension<CdAuthData>,
 ) -> Result<Json<ExportTimelineEvents>, ResponseError> {
     let client = get_client_default(true)?;
-    let resp: CampusTimeline = client
+    let resp = client
         .get(format!(
             "https://selfservice.campus-dual.de/dash/gettimeline?user={}",
             cd_authdata.user
@@ -401,24 +401,28 @@ pub async fn get_timeline(
         .send()
         .await?
         .error_for_status()?
-        .json()
-        .await?;
+        .json::<CampusTimeline>()
+        .await;
 
-    let events = resp.events;
+    if let Ok(timeline) = resp {
+        let events = timeline.events;
 
-    let fachsemester: Vec<ExportTimelineEvent> = events_by_color("#fcbe04", &events);
-    let theoriesemester: Vec<ExportTimelineEvent> = events_by_color("#0070a3", &events);
-    let praxissemester: Vec<ExportTimelineEvent> = events_by_color("#119911", &events);
-    let specials: Vec<ExportTimelineEvent> = events_by_color("#880000", &events);
+        let fachsemester: Vec<ExportTimelineEvent> = events_by_color("#fcbe04", &events);
+        let theoriesemester: Vec<ExportTimelineEvent> = events_by_color("#0070a3", &events);
+        let praxissemester: Vec<ExportTimelineEvent> = events_by_color("#119911", &events);
+        let specials: Vec<ExportTimelineEvent> = events_by_color("#880000", &events);
 
-    let export_events = ExportTimelineEvents {
-        fachsemester,
-        theoriesemester,
-        praxissemester,
-        specials,
-    };
+        let export_events = ExportTimelineEvents {
+            fachsemester,
+            theoriesemester,
+            praxissemester,
+            specials,
+        };
 
-    Ok(Json(export_events))
+        Ok(Json(export_events))
+    } else {
+        Ok(Json(ExportTimelineEvents::default()))
+    }
 }
 
 fn events_by_color(color: &str, events: &[CampusTimelineEvent]) -> Vec<ExportTimelineEvent> {

@@ -248,7 +248,7 @@ pub struct CampusTimelineEvent {
     pub duration: Option<bool>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct ExportTimelineEvents {
     pub fachsemester: Vec<ExportTimelineEvent>,
     pub theoriesemester: Vec<ExportTimelineEvent>,

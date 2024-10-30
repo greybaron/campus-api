@@ -118,7 +118,7 @@ pub async fn get_hash_and_userinfo(client: &Client) -> Result<(String, UserBasic
 
     lazy_static! {
         static ref RE_HASH: Regex = Regex::new(r#"hash="(\w+)";user="(\d+)";"#).unwrap();
-        static ref RE_STUDI: Regex = Regex::new(r#"<strong>Name:\s*</strong>(\w+),\s*(\w+).*<strong>\s*Seminargruppe:\s*</strong>([\w-]+).*<br>(.*)"#).unwrap();
+        static ref RE_STUDI: Regex = Regex::new(r#"<strong>Name:\s*</strong>(\w+),\s*(\w+).*<strong>\s*Seminargruppe:\s*</strong>([\w-]*).*<br>(.*)"#).unwrap();
     };
 
     let hash: String;
@@ -134,7 +134,14 @@ pub async fn get_hash_and_userinfo(client: &Client) -> Result<(String, UserBasic
         user_basic_info.last_name = captures.get(1).unwrap().as_str().to_string();
         user_basic_info.first_name = captures.get(2).unwrap().as_str().to_string();
         user_basic_info.seminar_group = captures.get(3).unwrap().as_str().to_string();
-        user_basic_info.seminar_name = captures.get(4).unwrap().as_str().trim().to_string();
+        user_basic_info.seminar_name = {
+            let cap = captures.get(4).unwrap().as_str().trim().to_string();
+            if let Some(stripped) = cap.strip_suffix("/") {
+                stripped.to_string()
+            } else {
+                cap
+            }
+        }
     }
 
     println!("get hash and user info parsing: {:.2?}", now.elapsed());
